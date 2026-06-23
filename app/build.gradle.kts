@@ -6,11 +6,12 @@ plugins {
 
 android {
     namespace = "com.subhranil.clouddnsmanager"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
+//    compileSdk {
+//        version = release(37) {
+//            minorApiLevel = 1
+//        }
+//    }
 
     defaultConfig {
         applicationId = "com.subhranil.clouddnsmanager"
@@ -47,6 +48,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.navigation3.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -56,7 +58,11 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.lifecycle.viewmodel.navigation3)
     implementation(libs.bundles.koin)
     implementation(libs.bundles.ktor)
+    implementation(libs.androidx.compose.material.icons.core)
 
 }
