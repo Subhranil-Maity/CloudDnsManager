@@ -69,6 +69,20 @@ class ZoneViewModel(
     public fun onAction(intent: ZoneIntent){
         when (intent) {
             is ZoneIntent.DismissError -> dismissError()
+            ZoneIntent.DismissDetailedDrawer -> dismissDetailedDrawer()
+            is ZoneIntent.ShowDetailed -> showDrawer(intent.record)
+        }
+    }
+
+    fun showDrawer(record: DnsRecord) {
+        _state.update {
+            it.copy(openDetailedDrawer = record)
+        }
+    }
+
+    fun dismissDetailedDrawer() {
+        _state.update {
+            it.copy(openDetailedDrawer = null)
         }
     }
 

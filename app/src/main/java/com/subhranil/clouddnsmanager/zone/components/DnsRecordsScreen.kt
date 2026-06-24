@@ -16,13 +16,17 @@ import androidx.compose.ui.unit.dp
 import com.subhranil.clouddnsmanager.models.dns.DnsRecord
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.clickable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DnsRecordsScreen(
     dnsRecords: List<DnsRecord>,
     isLoading: Boolean, // Control system state
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    drawer: DnsRecord?,
+    onDrawerDismiss: () -> Unit,
+    onSelectDrawer: (DnsRecord) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val smoothRadius = RoundedCornerShape(8.dp)
@@ -99,10 +103,18 @@ fun DnsRecordsScreen(
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
                         items(items = filteredRecords, key = { it.id }) { record ->
-                            DnsRecordRow(record = record)
+                            DnsRecordRow(record = record, Modifier.clickable{
+                                onSelectDrawer(record)
+                            })
                         }
                     }
                 }
+            }
+            if (drawer != null) {
+                DnsRecordDetailDrawer(
+                    record = drawer,
+                    onDismiss = onDrawerDismiss
+                )
             }
         }
     }

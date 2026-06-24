@@ -51,5 +51,18 @@ fun ZoneDetailsScreen(
             }
         }
     }
-    DnsRecordsScreen(state.dnsRecords, isLoading = state.isLoading)
+    DnsRecordsScreen(
+        state.dnsRecords,
+        isLoading = state.isLoading,
+        drawer = state.openDetailedDrawer,
+        onDrawerDismiss = {
+            viewModel.onAction(
+                ZoneIntent.DismissDetailedDrawer
+            )
+        },
+        onSelectDrawer = {
+            viewModel.onAction(
+                ZoneIntent.ShowDetailed(it)
+            )
+        })
 }

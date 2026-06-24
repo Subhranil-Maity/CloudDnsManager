@@ -54,18 +54,6 @@ fun SelectZoneScreen(
             }
         }
     }
-    if (state.loading) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(20.dp))
-            Text("Loading...")
-        }
-        return
-    }
     val context = LocalContext.current
     ZonesScreen(
         zones = state.zones,
@@ -73,6 +61,7 @@ fun SelectZoneScreen(
 //            Toast.makeText(context,  "Pressed", Toast.LENGTH_SHORT,).show()
             viewModel.onAction(SelectZoneIntent.SelectZone(it.id))
         },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        isLoading = state.loading
     )
 }

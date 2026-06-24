@@ -1,5 +1,6 @@
 package com.subhranil.clouddnsmanager.selectzones.components
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,11 +14,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.subhranil.clouddnsmanager.models.zone.Zone
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZonesScreen(
     zones: List<Zone>,
+    isLoading: Boolean, // Added state logic parameter
     onZoneClick: (Zone) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -25,7 +28,6 @@ fun ZonesScreen(
     val smoothRadius = RoundedCornerShape(8.dp)
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Filter list logic based on search string
     val filteredZones = remember(searchQuery, zones) {
         zones.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
@@ -34,11 +36,9 @@ fun ZonesScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Cloudflare Zones", fontWeight = FontWeight.Bold)
+                    Text("Select Zone", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         modifier = modifier.fillMaxSize()
@@ -49,21 +49,19 @@ fun ZonesScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            // --- Search Field ---
+            // --- Cloudflare Styled Search Field ---
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search your domains...") },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
-                },
+                leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                 shape = smoothRadius,
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     focusedBorderColor = primaryColor,
-                    unfocusedBorderColor = primaryColor.copy(alpha = 0.4f)
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -72,34 +70,75 @@ fun ZonesScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // --- Scrollable Zone List ---
-            if (filteredZones.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    Text(
-                        text = "No zones discovered.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp)
-                ) {
-                    items(items = filteredZones, key = { it.id }) { zone ->
-                        ZoneCard(
-                            zone = zone,
-                            onClick = { onZoneClick(zone) }
+            // Dynamic layout switches using Crossfade animations
+            Crossfade(targetState = isLoading, label = "ZonesScreenState") { loading ->
+                if (loading) {
+                    // Modern List Shimmer placeholder rows
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        repeat(5) { ZoneRowPlaceholder() }
+                    }
+                } else if (filteredZones.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No domains found under this account.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 24.dp)
+                    ) {
+                        items(items = filteredZones, key = { it.id }) { zone ->
+                            ZoneRow(
+                                zone = zone,
+                                onClick = { onZoneClick(zone) }
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+// --- Skeleton Placeholder Row for Zone Loading States ---
+@Composable
+fun ZoneRowPlaceholder() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            // Domain Name Block Track
+            Surface(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.size(width = 180.dp, height = 18.dp)
+            ) {}
+            Spacer(modifier = Modifier.height(8.dp))
+            // Account Label Track
+            Surface(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.size(width = 110.dp, height = 12.dp)
+            ) {}
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Status Alignment Track Block
+        Surface(
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+            shape = RoundedCornerShape(4.dp),
+            modifier = Modifier.size(width = 65.dp, height = 14.dp)
+        ) {}
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
 }
