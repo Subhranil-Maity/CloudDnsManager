@@ -1,5 +1,6 @@
 package com.subhranil.clouddnsmanager.onboading
 
+import android.content.res.Configuration
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,10 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.platform.LocalConfiguration
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnBoardingScreen(
@@ -36,12 +41,14 @@ fun OnBoardingScreen(
     viewModel: OnBoardingViewModel = koinViewModel()
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
-
-    // We define a uniform radius for that "professional rectangular-but-curved" look
     val smoothRadius = RoundedCornerShape(8.dp)
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // --- Error Dialog ---
+    // Detect screen orientation to switch dynamically between portrait and landscape layouts
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // --- Modern Clean Alert Dialog ---
     if (state.error != null) {
         BasicAlertDialog(
             onDismissRequest = { viewModel.onAction(OnBoardingIntent.DismissError) },
@@ -49,90 +56,198 @@ fun OnBoardingScreen(
         ) {
             Surface(
                 shape = smoothRadius,
-                tonalElevation = 0.dp,
-                modifier = Modifier.padding(16.dp)
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 4.dp
             ) {
-                Text(
-                    text = state.error,
-                    modifier = Modifier.padding(24.dp)
-                )
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "Authentication Error",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = state.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { viewModel.onAction(OnBoardingIntent.DismissError) }) {
+                            Text("Dismiss", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
             }
         }
     }
 
-    // --- Main Layout ---
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Enter The CloudFlare Token",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            ),
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        // This centering container pushes the input field right into the middle of the screen
+    // --- Main Layout Container ---
+    Scaffold(
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(Modifier.height(100.dp))
-            OutlinedTextField(
-                value = state.token,
-                onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) },
-                label = { Text("Cloudflare Token") },
-                shape = smoothRadius,
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    // Border changes color dynamically based on focus, using your Theme's Primary
-                    focusedBorderColor = primaryColor,
-                    unfocusedBorderColor = primaryColor.copy(alpha = 0.6f)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Adds a thick, 2dp primary color border with curved corners
-//                    .border(width = 2.dp, color = primaryColor, shape = smoothRadius)
-            )
-        }
 
-        // --- Bottom Action Button ---
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.End
-        ) {
-            if (!state.isTokenVerified) {
-                Button(
-                    onClick = { viewModel.onAction(OnBoardingIntent.VerifyToken) },
-                    enabled = !state.isTokenVerifying,
-                    shape = smoothRadius,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryColor
-                    ),
-                    modifier = Modifier.height(48.dp)
+            if (isLandscape) {
+                // --- LANDSCAPE MODE: Split Screen Grid System ---
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(48.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Verify Token")
+                    // Left Column: Branding Headers
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Enter The CloudFlare Token",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Right Column: Input Box & Localized Action Button Layout
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        OutlinedTextField(
+                            value = state.token,
+                            onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) },
+                            label = { Text("API Token") },
+                            placeholder = { Text("Paste your token here...") },
+                            shape = smoothRadius,
+                            singleLine = true,
+                            enabled = !state.isTokenVerifying && !state.isTokenVerified,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedBorderColor = primaryColor,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Action Button fits perfectly in the bottom right of the input column block
+                        ActionButtonGroup(
+                            state = state,
+                            smoothRadius = smoothRadius,
+                            primaryColor = primaryColor,
+                            modifier = Modifier.width(200.dp), // Maintain tight layout proportions in horizontal view
+                            onAction = viewModel::onAction
+                        )
+                    }
                 }
-            }else {
-                Button(
-                    onClick = { viewModel.onAction(OnBoardingIntent.Continue) },
-                    enabled = state.isTokenVerified == true,
-                    shape = smoothRadius,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = primaryColor
-                    ),
-                    modifier = Modifier.height(48.dp)
+            } else {
+                // --- PORTRAIT MODE: Top-to-Bottom Flow Layout ---
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Continue")
+                    Text(
+                        text = "Enter The CloudFlare Token",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp
+                        )
+                    )
+                    Text(
+                        text = "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                    )
+
+                    OutlinedTextField(
+                        value = state.token,
+                        onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) },
+                        label = { Text("API Token") },
+                        placeholder = { Text("Paste your token here...") },
+                        shape = smoothRadius,
+                        singleLine = true,
+                        enabled = !state.isTokenVerifying && !state.isTokenVerified,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
+
+                // Global Bottom Action Placement
+                ActionButtonGroup(
+                    state = state,
+                    smoothRadius = smoothRadius,
+                    primaryColor = primaryColor,
+                    modifier = Modifier.fillMaxWidth(),
+                    onAction = viewModel::onAction
+                )
             }
+        }
+    }
+}
+
+// --- Reusable Button Group to prevent code duplication across states ---
+@Composable
+private fun ActionButtonGroup(
+    state: OnBoardingState, // Adjust to exactly match your real state instance object name
+    smoothRadius: RoundedCornerShape,
+    primaryColor: Color,
+    onAction: (OnBoardingIntent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (!state.isTokenVerified) {
+        Button(
+            onClick = { onAction(OnBoardingIntent.VerifyToken) },
+            enabled = !state.isTokenVerifying && state.token.isNotBlank(),
+            shape = smoothRadius,
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+            modifier = modifier.height(50.dp)
+        ) {
+            if (state.isTokenVerifying) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Text("Verify Token", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+    } else {
+        Button(
+            onClick = { onAction(OnBoardingIntent.Continue) },
+            shape = smoothRadius,
+            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+            modifier = modifier.height(50.dp)
+        ) {
+            Text("Continue", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
