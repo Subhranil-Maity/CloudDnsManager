@@ -21,6 +21,7 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import com.subhranil.clouddnsmanager.onboading.OnBoardingScreen
 import com.subhranil.clouddnsmanager.selectzones.SelectZoneScreen
 import com.subhranil.clouddnsmanager.start.StartScreen
+import com.subhranil.clouddnsmanager.zone.ZoneDetailsScreen
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.koin.compose.koinInject
@@ -60,7 +61,7 @@ fun RootNavigation(
     // // Example: Moving from OnBoarding to SelectZones and ensuring OnBoarding is gone
     //backStack.set(backStack.entries.dropLast(1) + NavDestinations.SelectZonesDestination)
     LaunchedEffect(currentStackState) {
-        Log.d("RootNav", "BackStack Changed")
+        Log.d("RootNav", "BackStack Changed ${currentStackState.toString()}")
         // If your Navigation 3 artifact treats backStack directly as the state wrapper:
         if (backStack != currentStackState) {
             backStack.clear()
@@ -75,28 +76,12 @@ fun RootNavigation(
             rememberSaveableStateHolderNavEntryDecorator()
         ),
         entryProvider = { key ->
-            when(key) {
-                is NavDestinations.StartScreenDestination -> {
-                    NavEntry(key){
-                        StartScreen()
-                    }
-                }
-                is NavDestinations.OnBoarding -> {
-                    NavEntry(key){
-                        OnBoardingScreen()
-                    }
-                }
-                is NavDestinations.SelectZonesDestination ->{
-                    NavEntry(key){
-                        SelectZoneScreen()
-                    }
-                }
-                else ->{
-                    NavEntry(key){
-                        StartScreen()
-                    }
-                }
-//                is NavDestinations.ZoneDetailsDestination -> StartScreen()
+            when (key) {
+                is NavDestinations.StartScreenDestination -> NavEntry(key) { StartScreen() }
+                is NavDestinations.OnBoarding -> NavEntry(key) { OnBoardingScreen() }
+                is NavDestinations.SelectZonesDestination -> NavEntry(key) { SelectZoneScreen() }
+                is NavDestinations.ZoneDetailsDestination -> NavEntry(key) { ZoneDetailsScreen() }
+                else -> error("Unsupported navigation destination: $key")
             }
         }
     )

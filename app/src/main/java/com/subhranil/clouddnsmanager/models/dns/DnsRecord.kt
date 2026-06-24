@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DnsRecord(
     val id: String,
-    @SerialName("zone_id") val zoneId: String,
-    @SerialName("zone_name") val zoneName: String,
+    @SerialName("zone_id") val zoneId: String? = null,
+    @SerialName("zone_name") val zoneName: String? = null,
     val name: String,
     val type: DnsRecordType,
     val content: String,

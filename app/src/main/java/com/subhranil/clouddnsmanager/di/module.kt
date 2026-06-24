@@ -9,6 +9,7 @@ import com.subhranil.clouddnsmanager.selectzones.SelectZoneViewModel
 import com.subhranil.clouddnsmanager.start.StartViewModel
 import com.subhranil.clouddnsmanager.storage.UserPreferences
 import com.subhranil.clouddnsmanager.storage.UserPreferencesSerializer
+import com.subhranil.clouddnsmanager.zone.ZoneViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
@@ -18,6 +19,7 @@ val appModule = module {
     viewModelOf(::StartViewModel)
     viewModelOf(::OnBoardingViewModel)
     viewModelOf(::SelectZoneViewModel)
+    viewModelOf(::ZoneViewModel)
     singleOf(::NavigationRouter)
     single<DataStore<UserPreferences>> {
         DataStoreFactory.create(

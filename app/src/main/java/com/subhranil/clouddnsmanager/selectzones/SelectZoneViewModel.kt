@@ -1,5 +1,6 @@
 package com.subhranil.clouddnsmanager.selectzones
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -54,7 +55,7 @@ class SelectZoneViewModel(
                 }
             }
             _state.update {
-                it.copy(loading = true)
+                it.copy(loading = false)
             }
         }
 
@@ -62,7 +63,14 @@ class SelectZoneViewModel(
     public fun onAction(intent: SelectZoneIntent){
         when (intent) {
             is SelectZoneIntent.DismissError -> dismissError()
+            is SelectZoneIntent.SelectZone -> selectZone(intent.zoneId)
         }
+    }
+
+    fun selectZone(zoneId: String) {
+        Log.d("Select Zone Scrren", "Pussing To Stack")
+
+        router.push(NavDestinations.ZoneDetailsDestination(zoneId))
     }
 
     fun dismissError() {

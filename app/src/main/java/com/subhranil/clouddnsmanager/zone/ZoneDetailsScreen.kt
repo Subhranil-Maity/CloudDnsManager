@@ -1,13 +1,11 @@
-package com.subhranil.clouddnsmanager.selectzones
+package com.subhranil.clouddnsmanager.zone
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,19 +17,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.subhranil.clouddnsmanager.onboading.OnBoardingIntent
-import com.subhranil.clouddnsmanager.selectzones.components.ZonesScreen
+import com.subhranil.clouddnsmanager.selectzones.SelectZoneIntent
+import com.subhranil.clouddnsmanager.zone.components.DnsRecordsScreen
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SelectZoneScreen(
+fun ZoneDetailsScreen(
     modifier: Modifier = Modifier,
-    viewModel: SelectZoneViewModel = koinViewModel()
+    viewModel: ZoneViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle();
     // --- Error Dialog ---
@@ -39,7 +36,7 @@ fun SelectZoneScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
     if (state.error != null) {
         BasicAlertDialog(
-            onDismissRequest = { viewModel.onAction(SelectZoneIntent.DismissError) },
+            onDismissRequest = { viewModel.onAction(ZoneIntent.DismissError) },
             properties = DialogProperties()
         ) {
             Surface(
@@ -54,25 +51,5 @@ fun SelectZoneScreen(
             }
         }
     }
-    if (state.loading) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(20.dp))
-            Text("Loading...")
-        }
-        return
-    }
-    val context = LocalContext.current
-    ZonesScreen(
-        zones = state.zones,
-        onZoneClick = {
-//            Toast.makeText(context,  "Pressed", Toast.LENGTH_SHORT,).show()
-            viewModel.onAction(SelectZoneIntent.SelectZone(it.id))
-        },
-        modifier = Modifier.fillMaxSize()
-    )
+    DnsRecordsScreen(state.dnsRecords, isLoading = state.isLoading)
 }
