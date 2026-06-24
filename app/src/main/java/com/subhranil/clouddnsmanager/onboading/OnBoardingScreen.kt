@@ -1,28 +1,14 @@
 package com.subhranil.clouddnsmanager.onboading
 
 import android.content.res.Configuration
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BasicAlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,9 +16,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.ui.platform.LocalConfiguration
+private const val SUPPORTING_INFO_TEXT =
+    "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard. Make sure that the Token has the required permissions."
+
+private const val SUCCESS_INFO_TEXT =
+    "Your Cloudflare API token has been successfully validated. You can now proceed to manage your infrastructure domains."
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,9 +32,12 @@ fun OnBoardingScreen(
     val smoothRadius = RoundedCornerShape(8.dp)
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Detect screen orientation to switch dynamically between portrait and landscape layouts
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Dynamic Typography Content based on State
+    val headlineText = if (state.isTokenVerified) "Successfully Verified" else "Enter The CloudFlare Token"
+    val subText = if (state.isTokenVerified) SUCCESS_INFO_TEXT else SUPPORTING_INFO_TEXT
 
     // --- Modern Clean Alert Dialog ---
     if (state.error != null) {
@@ -98,9 +89,8 @@ fun OnBoardingScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-
             if (isLandscape) {
-                // --- LANDSCAPE MODE: Split Screen Grid System ---
+                // --- LANDSCAPE MODE: Split Screen Layout ---
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -111,7 +101,7 @@ fun OnBoardingScreen(
                     // Left Column: Branding Headers
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Enter The CloudFlare Token",
+                            text = headlineText,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = (-0.5).sp
@@ -119,43 +109,32 @@ fun OnBoardingScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard.",
+                            text = subText,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    // Right Column: Input Box & Localized Action Button Layout
+                    // Right Column: Input Box & Button Layout
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.End
                     ) {
-                        OutlinedTextField(
-                            value = state.token,
-                            onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) },
-                            label = { Text("API Token") },
-                            placeholder = { Text("Paste your token here...") },
-                            shape = smoothRadius,
-                            singleLine = true,
-                            enabled = !state.isTokenVerifying && !state.isTokenVerified,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedBorderColor = primaryColor,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                            ),
-                            modifier = Modifier.fillMaxWidth()
+                        TokenInputField(
+                            state = state,
+                            smoothRadius = smoothRadius,
+                            primaryColor = primaryColor,
+                            onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Action Button fits perfectly in the bottom right of the input column block
                         ActionButtonGroup(
                             state = state,
                             smoothRadius = smoothRadius,
                             primaryColor = primaryColor,
-                            modifier = Modifier.width(200.dp), // Maintain tight layout proportions in horizontal view
+                            modifier = Modifier.width(200.dp),
                             onAction = viewModel::onAction
                         )
                     }
@@ -169,38 +148,27 @@ fun OnBoardingScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Enter The CloudFlare Token",
+                        text = headlineText,
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.5).sp
                         )
                     )
                     Text(
-                        text = "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard.",
+                        text = subText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
                     )
 
-                    OutlinedTextField(
-                        value = state.token,
-                        onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) },
-                        label = { Text("API Token") },
-                        placeholder = { Text("Paste your token here...") },
-                        shape = smoothRadius,
-                        singleLine = true,
-                        enabled = !state.isTokenVerifying && !state.isTokenVerified,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                    TokenInputField(
+                        state = state,
+                        smoothRadius = smoothRadius,
+                        primaryColor = primaryColor,
+                        onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
                     )
                 }
 
-                // Global Bottom Action Placement
                 ActionButtonGroup(
                     state = state,
                     smoothRadius = smoothRadius,
@@ -213,10 +181,40 @@ fun OnBoardingScreen(
     }
 }
 
-// --- Reusable Button Group to prevent code duplication across states ---
+// --- Reusable Core Token Text Input Field ---
+@Composable
+private fun TokenInputField(
+    state: OnBoardingState,
+    smoothRadius: RoundedCornerShape,
+    primaryColor: Color,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = state.token,
+        onValueChange = onValueChange,
+        label = { Text("API Token") },
+        placeholder = { Text("Paste your token here...") },
+        shape = smoothRadius,
+        singleLine = true,
+        // Using readOnly ensures the data stream stays alive, but blocks user input
+        readOnly = state.isTokenVerifying || state.isTokenVerified,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedBorderColor = primaryColor,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            // Visually dampens the text color slightly when it's locked/read-only
+            focusedTextColor = if (state.isTokenVerified) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+// --- Reusable Button Group Handling State Actions ---
 @Composable
 private fun ActionButtonGroup(
-    state: OnBoardingState, // Adjust to exactly match your real state instance object name
+    state: OnBoardingState,
     smoothRadius: RoundedCornerShape,
     primaryColor: Color,
     onAction: (OnBoardingIntent) -> Unit,
@@ -233,7 +231,7 @@ private fun ActionButtonGroup(
             if (state.isTokenVerifying) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onPrimary, // Mapped to primary contrast color
                     strokeWidth = 2.5.dp
                 )
             } else {
