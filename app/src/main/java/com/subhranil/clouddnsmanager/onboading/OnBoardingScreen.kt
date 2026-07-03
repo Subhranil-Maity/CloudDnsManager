@@ -17,10 +17,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
 private const val SUPPORTING_INFO_TEXT =
-    "Provide an API token with Zone read permissions to synchronize your infrastructure dashboard. Make sure that the Token has the required permissions."
+    "Provide an API token with Zone Read and DNS Read permissions to synchronize your infrastructure dashboard. Make sure that the Token has the required permissions."
 
 private const val SUCCESS_INFO_TEXT =
-    "Your Cloudflare API token has been successfully validated. You can now proceed to manage your infrastructure domains."
+    "Your Cloudflare API token has been successfully validated with Zone Read and DNS Read permissions. You can now proceed to manage your infrastructure domains."
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,6 @@ fun OnBoardingScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // Dynamic Typography Content based on State
     val headlineText = if (state.isTokenVerified) "Successfully Verified" else "Enter The CloudFlare Token"
     val subText = if (state.isTokenVerified) SUCCESS_INFO_TEXT else SUPPORTING_INFO_TEXT
 
@@ -60,7 +59,7 @@ fun OnBoardingScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = state.error,
+                        text = state.error ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -98,7 +97,6 @@ fun OnBoardingScreen(
                     horizontalArrangement = Arrangement.spacedBy(48.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left Column: Branding Headers
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = headlineText,
@@ -115,26 +113,27 @@ fun OnBoardingScreen(
                         )
                     }
 
-                    // Right Column: Input Box & Button Layout
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.End
                     ) {
-                        TokenInputField(
-                            state = state,
-                            smoothRadius = smoothRadius,
-                            primaryColor = primaryColor,
-                            onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
+                        // Input box is hidden dynamically if token is verified
+                        if (!state.isTokenVerified) {
+                            TokenInputField(
+                                state = state,
+                                smoothRadius = smoothRadius,
+                                primaryColor = primaryColor,
+                                onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
 
                         ActionButtonGroup(
                             state = state,
                             smoothRadius = smoothRadius,
                             primaryColor = primaryColor,
-                            modifier = Modifier.width(200.dp),
+                            modifier = if (state.isTokenVerified) Modifier.fillMaxWidth() else Modifier.width(200.dp),
                             onAction = viewModel::onAction
                         )
                     }
@@ -158,15 +157,18 @@ fun OnBoardingScreen(
                         text = subText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                        modifier = Modifier.padding(top = 8.dp, bottom = if (state.isTokenVerified) 0.dp else 24.dp)
                     )
 
-                    TokenInputField(
-                        state = state,
-                        smoothRadius = smoothRadius,
-                        primaryColor = primaryColor,
-                        onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
-                    )
+                    // Input box is hidden dynamically if token is verified
+                    if (!state.isTokenVerified) {
+                        TokenInputField(
+                            state = state,
+                            smoothRadius = smoothRadius,
+                            primaryColor = primaryColor,
+                            onValueChange = { viewModel.onAction(OnBoardingIntent.UpdateToken(it)) }
+                        )
+                    }
                 }
 
                 ActionButtonGroup(
@@ -181,7 +183,6 @@ fun OnBoardingScreen(
     }
 }
 
-// --- Reusable Core Token Text Input Field ---
 @Composable
 private fun TokenInputField(
     state: OnBoardingState,
@@ -197,21 +198,17 @@ private fun TokenInputField(
         placeholder = { Text("Paste your token here...") },
         shape = smoothRadius,
         singleLine = true,
-        // Using readOnly ensures the data stream stays alive, but blocks user input
-        readOnly = state.isTokenVerifying || state.isTokenVerified,
+        readOnly = state.isTokenVerifying,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
             focusedBorderColor = primaryColor,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            // Visually dampens the text color slightly when it's locked/read-only
-            focusedTextColor = if (state.isTokenVerified) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
         ),
         modifier = modifier.fillMaxWidth()
     )
 }
 
-// --- Reusable Button Group Handling State Actions ---
 @Composable
 private fun ActionButtonGroup(
     state: OnBoardingState,
@@ -231,7 +228,7 @@ private fun ActionButtonGroup(
             if (state.isTokenVerifying) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary, // Mapped to primary contrast color
+                    color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.5.dp
                 )
             } else {

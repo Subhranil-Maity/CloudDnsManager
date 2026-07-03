@@ -1,4 +1,4 @@
-package com.subhranil.clouddnsmanager.zone.components
+package com.subhranil.clouddnsmanager.dns.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

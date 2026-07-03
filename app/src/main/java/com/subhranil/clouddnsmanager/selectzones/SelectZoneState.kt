@@ -2,9 +2,12 @@ package com.subhranil.clouddnsmanager.selectzones
 
 import com.subhranil.clouddnsmanager.models.zone.Zone
 
+sealed class SelectZoneDataState {
+    data object Loading: SelectZoneDataState()
+    data class Error(val message: String): SelectZoneDataState()
+    data class ZoneData(val zones: List<Zone>): SelectZoneDataState()
+}
 
 data class SelectZoneState(
-    val zones: List<Zone> = emptyList(),
-    val loading: Boolean = false,
-    val error: String? = null
+    val dataState: SelectZoneDataState = SelectZoneDataState.Loading
 )

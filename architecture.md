@@ -1,6 +1,6 @@
 # Architecture — CloudDnsManager
 
-> A concise reference for how the app is built, why it is built that way, andenable and what the technology choices enable.
+> A concise reference for how the app is built, why it is built that way, and what the technology choices enable.
 
 ---
 
@@ -32,8 +32,8 @@ The project follows an **MVVM (Model-View-ViewModel)** architecture enhanced wit
                        ▼
 ┌─────────────────────────────────────────────┐
 │                    State                    │
-│  Immutable data class representing the UI   │
-│  at any given moment                        │
+│  Immutable sealed interface representing    │
+│  the UI at any given moment                 │
 └──────────────────────┬──────────────────────┘
                        │ Emitted to UI
                        ▼
@@ -47,9 +47,9 @@ The project follows an **MVVM (Model-View-ViewModel)** architecture enhanced wit
 
 Every screen is implemented as a **pure state machine**:
 
-- **State is single-source-of-truth**: The `State` class (e.g., `OnBoardingState`, `SelectZoneState`) holds all data needed to render the screen.
-- **Actions are explicit**: Users trigger `*ntent` sealed classes (e.g., `OnBoardingIntent.VerifyToken`, `SelectZoneIntent.SelectZone`).
-- **State transitions are centralized**: The ViewModel handles intents, performs side effects (API calls, storage), and emits a new state.
+- **State is a sealed interface**: Each screen has a sealed state type with distinct substates (e.g., `OnBoardingState: Idle`, `Verifying`, `Error`, `Verified`). Only one state is active at a time.
+- **Actions are explicit**: Users trigger `*Intent` sealed classes (e.g., `OnBoardingIntent.VerifyToken`, `SelectZoneIntent.SelectZone`).
+- **State transitions are centralized**: The ViewModel handles intents, performs side effects (API calls, storage), and transitions between sealed state types.
 - **Composable purity**: Compose functions are deterministic given their state, making testing trivial and rendering predictable.
 
 This approach deliberately borrows from Elm/MVI philosophy while remaining pragmatic with Ktor and standard Kotlin tooling.
@@ -67,7 +67,8 @@ This approach deliberately borrows from Elm/MVI philosophy while remaining pragm
 | **HTTP Client** | Ktor | 3.5.0 | Type-safe networking with CIO engine |
 | **Serialization** | kotlinx.serialization | 1.11.0 | JSON parsing with compile-time safety |
 | **Navigation** | AndroidX Navigation 3 | 1.1.3 | Type-safe navigation with backstack management |
-| **Data Storage** | AndroidX DataStore | 1.2.1 | Structured preferences with protobuf support |
+| **Data Storage** | AndroidX DataStore | 1.2.1 | Preferences storage with custom serializer |
+| **Encryption** | AES via `Crypto` | — | At-rest token encryption with Base64 encoding |
 | **Build System** | Gradle (Kotlin DSL) | 9.2.1 | Build automation |
 
 ---
@@ -76,34 +77,44 @@ This approach deliberately borrows from Elm/MVI philosophy while remaining pragm
 
 ```
 com.subhranil.clouddnsmanager/
-├── di/                        # Dependency injection setup (Koin)
-│   └── module.kt              # App module: ViewModels, NavigationRouter, DataStore
+├── di/                           # Dependency injection setup (Koin)
+│   └── module.kt                 # App module: ViewModels, SessionManager,
+│                                 # TokenStorage, CloudflareClient factory
 │
-├── http/                      # Network layer
-│   ├── engine.kt              # Ktor HTTP engine, JSON config, base URL handling
-│   └── CloudflareClient.kt    # Typed API client for Cloudflare v4 endpoints
+├── http/                         # Network layer
+│   ├── engine.kt                 # Ktor HTTP engine, JSON config, base URL handling
+│   ├── CloudflareClient.kt       # Typed API client for Cloudflare v4 endpoints
+│   └── SessionManager.kt         # Singleton session: holds CloudflareClient,
+│                                 # manages Authenticated/Unauthenticated state
 │
-├── nav/                       # Navigation layer
-│   ├── NavDestinations.kt     # Sealed interface of all possible screens
-│   ├── NavigationRouter.kt    # Centralized navigation state management
-│   └── RootNavigation.kt      # Root Composable wiring Navigation3 backstack
+├── nav/                          # Navigation layer
+│   ├── NavDestinations.kt        # Sealed interface of all possible screens
+│   ├── NavigationRouter.kt       # Centralized navigation state management
+│   └── RootNavigation.kt         # Root Composable wiring Navigation3 backstack
 │
-├── models/                    # Data models (all @Serializable)
-│   ├── dns/                   # DNS record models (DnsRecord, DnsRecordType, etc.)
-│   ├── zone/                  # Zone models (Zone, ZoneStatus, ZonePlan, etc.)
-│   ├── token/                 # Token models (Token, TokenVerification, etc.)
-│   └── [generic]              # Response wrappers, pagination, errors
+├── models/                       # Data models (all @Serializable)
+│   ├── dns/                      # DNS record models (DnsRecord, DnsRecordType, etc.)
+│   ├── zone/                     # Zone models (Zone, ZoneStatus, ZonePlan, etc.)
+│   ├── token/                    # Token models (Token, TokenVerification, etc.)
+│   └── [generic]                 # Response wrappers, pagination, errors
 │
-├── storage/                   # Persistence layer
-│   ├── crypto.kt              # Encryption helpers
-│   └── SecureSharedPref.kt    # DataStore-backed user preferences
+├── storage/                      # Persistence layer
+│   ├── crypto.kt                 # AES encryption/decryption helpers
+│   ├── SecureSharedPref.kt       # DataStore serializer with encrypted I/O
+│   └── TokenStorage.kt           # Interface + DataStore-backed implementation
 │
-├── onboading/                 # Onboarding flow (API token input)
-├── selectzones/               # Zone selection screen
-├── zone/                      # Zone details (DNS records view)
-├── start/                     # App entry/loading screen
+├── dns/                          # DNS record viewer (replaces old zone/ package)
+│   ├── DnsRecordScreen.kt        # Composable with BackHandler + state-driven rendering
+│   ├── DnsRecordViewModel.kt     # Flow-based record loading with error/retry support
+│   ├── DnsRecordState.kt         # Sealed DnsRecordDataState: Loading | Error | DnsRecordData
+│   ├── DnsRecordIntent.kt        # ShowDetailed, DismissDetailedDrawer, Retry, GoBack
+│   └── components/               # Reusable UI: DnsRecordRow, DnsRecordDetailDrawer, etc.
 │
-└── ui/theme/                  # Material 3 theme (Color, Type, Theme)
+├── onboading/                    # Onboarding flow (API token input)
+├── selectzones/                  # Zone selection screen
+├── start/                        # App entry/loading screen
+│
+└── ui/theme/                     # Material 3 theme (Color, Type, Theme)
 ```
 
 ---
@@ -124,9 +135,11 @@ User Action
     ▼
 ┌─────────────────────────────────┐
 │  ViewModel processes Intent     │
-│  - ValidatesBusiness logic      │
-│  - Launches coroutine for I/O   │
-│  - Calls CloudflareClient       │
+│  - Validates business logic      │
+│  - Launches coroutine for I/O  │
+│  - Calls SessionManager.login() │
+│    (which creates CloudflareClient│
+│     and verifies token)          │
 └─────────────────────────────────┘
     │
     ▼
@@ -139,8 +152,8 @@ User Action
     │
     ▼
 ┌─────────────────────────────────┐
-│  ViewModel updates State        │
-│  (via MutableStateFlow)         │
+│  ViewModel transitions state    │
+│  (sealed interface → new state)  │
 └─────────────────────────────────┘
     │
     ▼
@@ -151,54 +164,100 @@ User Action
 └──────────────────────────────────┘
 ```
 
+Once authenticated, SessionManager holds the `CloudflareClient` and downstream ViewModels (`SelectZoneViewModel`, `DnsRecordViewModel`) receive it via Koin injection — they never create their own client.
+
 ---
 
 ## 6. Navigation
 
-Navigation is handled via **AndroidX Navigation 3**, using a **sealed class** for type-safe destinations:
+Navigation is handled via **AndroidX Navigation 3**, using a **sealed interface** for type-safe destinations:
 
 ```kotlin
 sealed interface NavDestinations : NavKey {
     data object StartScreenDestination : NavDestinations
     data object OnBoarding : NavDestinations
     data object SelectZonesDestination : NavDestinations
-    data class ZoneDetailsDestination(val zoneId: String) : NavDestinations
+    data class DnsRecordsDestination(val zoneId: String) : NavDestinations
 }
 ```
 
 Key characteristics:
 - **Centralized state**: `NavigationRouter` (Koin singleton) owns the current backstack
 - **Reactive updates**: ViewModels push destinations; `RootNavigation` observes and renders
-- **Type safety**: Navigation arguments are typed (e.g., Fixed `zoneId: String` in `ZoneDetailsDestination`)
+- **Type safety**: Navigation arguments are typed (e.g., `zoneId: String` in `DnsRecordsDestination`)
+- **BackHandler support**: `DnsRecordScreen` intercepts system back presses via `DnsRecordIntent.GoBack`
 
 ---
 
 ## 7. State Management
 
-Each screen follows the **State-Intent-ViewModel** triad:
+Each screen follows the **State-Intent-ViewModel** triad with **sealed state types**:
 
 | Component | Role | Example |
 |-----------|------|---------|
-| **State** | Immutable snapshot of UI | `OnBoardingState(token: "", isVerifying: false, error: null)` |
-| **Intent** | Sealed class of possible actions | `OnBoardingIntent.UpdateToken`, `VerifyToken`, `DismissError` |
-| **ViewModel** | Processes intents, holds state | `OnBoardingViewModel` exposes `val state: StateFlow<OnBoardingState>` |
+| **State** | Sealed interface of possible UI states | `OnBoardingState { Idle, Verifying, Error, Verified }` |
+| **Intent** | Sealed class of possible actions | `DnsRecordIntent { ShowDetailed, DismissDetailedDrawer, Retry, GoBack }` |
+| **ViewModel** | Processes intents, transitions state | `DnsRecordViewModel` exposes `val state: StateFlow<DnsRecordState>` |
 
-This makes the UI a **pure function of state**:
+### Sealed Data States
+
+Data-driven screens use a nested sealed type for content state:
 
 ```kotlin
-@Composable
-fun OnBoardingScreen() {
-    val state = viewModel.state.collectAsStateWithLifecycle()
-    // UI is 100% determined by `state`
+sealed interface DnsRecordDataState {
+    data object Loading : DnsRecordDataState
+    data class Error(val error: String) : DnsRecordDataState
+    data class DnsRecordData(val dnsList: List<DnsRecord>) : DnsRecordDataState
 }
 
-// No side effects in composables!
-// All logic lives in ViewModel.
+data class DnsRecordState(
+    val dnsRecordDataState: DnsRecordDataState = DnsRecordDataState.Loading,
+    val openDetailedDrawer: DnsRecord? = null,
+)
+```
+
+This pattern enables exhaustive `when` branches in Compose:
+```kotlin
+when (val dataState = state.dnsRecordDataState) {
+    is DnsRecordDataState.Loading       -> /* shimmer */
+    is DnsRecordDataState.Error         -> /* error + retry */
+    is DnsRecordDataState.DnsRecordData -> /* record list */
+}
+```
+
+Every screen uses the same pattern — no `if/else` chains, no nullable state fields.
+
+---
+
+## 8. Session Management
+
+The `SessionManager` in `http/` is the core orchestration singleton:
+
+```kotlin
+sealed interface SessionState {
+    data object Unauthenticated : SessionState
+    data object Loading : SessionState
+    data class Authenticated(val client: CloudflareClient) : SessionState
+}
+```
+
+- `initialize()` — Reads token from DataStore, creates client if token exists
+- `login(token)` — Creates temp client, verifies token against Cloudflare, saves on success
+- `logout()` — Closes client, clears token, transitions to Unauthenticated
+
+Koin provides `CloudflareClient` as a **factory** that reads from `SessionManager`:
+
+```kotlin
+factory<CloudflareClient> {
+    val state = get<SessionManager>().sessionState.value
+    if (state is SessionState.Authenticated) state.client
+    else throw IllegalStateException("CloudflareClient requested but user is not authenticated!")
+}
 ```
 
 ---
 
-## 8. API Layer
+## 9. API Layer
 
 ### `CloudflareHttpClient`
 - Configures Ktor with CIO engine
@@ -217,9 +276,9 @@ fun OnBoardingScreen() {
 
 ---
 
-## 9. Storage Layer
+## 10. Storage Layer
 
-User preferences (API token) are stored using **DataStore** with a custom serializer:
+Token and preferences are stored using **DataStore** with a **custom encrypted serializer**:
 
 ```kotlin
 DataStoreFactory.create(
@@ -228,28 +287,30 @@ DataStoreFactory.create(
 )
 ```
 
-- **Structured**: Protobuf-backed for type safety and performance
-- **Encrypted**: Utilizes Android's security best practices for sensitive data
+- **Encrypted I/O**: `UserPreferencesSerializer` AES-encrypts the JSON bytes before writing and decrypts on read (with Base64 encoding for safe file storage)
+- **`TokenStorage` interface**: Abstracted behind `DataStoreTokenStorage` for testability
 - **Reactive**: Exposed as `Flow<UserPreferences>` for reactive UI updates
 
 ---
 
-## 10. Key Design Decisions
+## 11. Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **Ktor over Retrofit** | First-class Kotlin coroutines support, cleaner suspend function signatures, and native `Flow` integration for paginated data城隍庙. |
+| **Ktor over Retrofit** | First-class Kotlin coroutines support, cleaner suspend function signatures, and native `Flow` integration for paginated data. |
 | **Navigation 3 over legacy Navigation** | Simpler backstack management, better type safety with sealed classes, and more compose-native APIs. |
-| **Screen-level state machines** | Makes testing trivial, prevents UI bugs from side effects, and enables easy reasoning about any screen's behavior. |
-| **Manual pagination loops** | Eagerly loads all pages into memory for small-to-medium datasets, simplifying UI logic at the cost of upfront loading. Future work: true lazy pagination. |
+| **Sealed state over flat state** | Exhaustive `when` branches prevent unhandled UI states and make impossible states unrepresentable. |
+| **Flow-based pagination** | Eagerly loads all pages via `client.allZones()` Flow with `catch`/`collect` instead of manual page loops. |
+| **SessionManager singleton** | Centralizes auth state and client lifecycle; ViewModels never create their own HTTP clients. |
 | **Koin over Hilt/Dagger** | Simpler setup, no kapt/codegen, faster builds, and sufficient for the app's DI needs. |
+| **Encrypted DataStore** | Token stored at-rest with AES encryption + Base64 transport encoding. |
 
 ---
 
-## 11. Future Improvements
+## 12. Future Improvements
 
-- **Lazy pagination**: Convert eager page loops to `Flow`-based lazy loading with `Paging 3`
-- **DNS record editing**: Add create/update/delete operations for full DNS management
-- **Offline support**: Add Room database for caching zone/record data
-- **Biometric auth**: Secure token storage with biometric unlock
-- **Dark mode**: Dynamic theme switching support
+- **Write operations**: Add create/update/delete for DNS records
+- **Paging 3**: Replace eager Flow-based loading with true lazy pagination
+- **Offline support**: Room database for caching zone/record data
+- **Biometric auth**: Secure token access with biometric unlock
+- **Dark mode**: Dynamic theme switching

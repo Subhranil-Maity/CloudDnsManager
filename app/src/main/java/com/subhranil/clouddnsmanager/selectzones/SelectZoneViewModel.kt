@@ -1,81 +1,72 @@
 package com.subhranil.clouddnsmanager.selectzones
 
 import android.util.Log
-import androidx.datastore.core.DataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.subhranil.clouddnsmanager.PaginationParams
 import com.subhranil.clouddnsmanager.http.CloudflareClient
 import com.subhranil.clouddnsmanager.models.zone.Zone
 import com.subhranil.clouddnsmanager.nav.NavDestinations
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
-import com.subhranil.clouddnsmanager.storage.UserPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-
 class SelectZoneViewModel(
     private val router: NavigationRouter,
-    private val dataStore: DataStore<UserPreferences>
+    private val client: CloudflareClient
 ) : ViewModel() {
+
     private val _state = MutableStateFlow(SelectZoneState())
     val state = _state.asStateFlow()
-    var client = CloudflareClient("")
-
 
     init {
+        loadZones()
+    }
+
+    private fun loadZones() {
         viewModelScope.launch {
-            _state.update {
-                it.copy(loading = true)
-            }
-            val token = dataStore.data.first().token ?: ""
-            if (token.isEmpty()) {
-                router.resetWithStack(listOf(NavDestinations.StartScreenDestination))
-            }
-            client = CloudflareClient(token)
-            try {
-                var zone: MutableList<Zone> = mutableListOf<Zone>()
-                val pZ = client.listZones()
-                zone.addAll(pZ.items)
-                if (pZ.info != null) {
-                    val totalPage = pZ.info.totalPages
-                    for (i in 2..totalPage) {
-                        zone.addAll(client.listZones(pagination = PaginationParams(page = i)).items)
+            _state.update { it.copy(dataState = SelectZoneDataState.Loading) }
+
+            val accumulatedZones = mutableListOf<Zone>()
+
+            client.allZones()
+                .catch { exception ->
+                    _state.update {
+                        it.copy(
+                            dataState = SelectZoneDataState.Error(
+                                exception.message ?: "Unknown Error"
+                            )
+                        )
                     }
                 }
-                _state.update {
-                    it.copy(zones = zone)
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(error = e.message)
-                }
-            }
-            _state.update {
-                it.copy(loading = false)
-            }
-        }
+                .collect { singleZone ->
+                    accumulatedZones.add(singleZone)
 
+                    // Emitting a clean list snapshot as each individual zone loads sequentially
+                    _state.update {
+                        it.copy(dataState = SelectZoneDataState.ZoneData(accumulatedZones.toList()))
+                    }
+                }
+        }
     }
-    public fun onAction(intent: SelectZoneIntent){
+
+    fun onAction(intent: SelectZoneIntent) {
         when (intent) {
-            is SelectZoneIntent.DismissError -> dismissError()
             is SelectZoneIntent.SelectZone -> selectZone(intent.zoneId)
+            is SelectZoneIntent.Retry -> loadZones()
+//            is SelectZoneIntent.DismissError -> dismissError()
         }
     }
 
-    fun selectZone(zoneId: String) {
-        Log.d("Select Zone Scrren", "Pussing To Stack")
-
-        router.push(NavDestinations.ZoneDetailsDestination(zoneId))
+    private fun selectZone(zoneId: String) {
+        Log.d("Select Zone Screen", "Pushing To Stack")
+        router.push(NavDestinations.DnsRecordsDestination(zoneId))
     }
 
-    fun dismissError() {
-        _state.update {
-            it.copy(error = null)
-        }
+    private fun dismissError() {
+        // Fall back gracefully to displaying an empty or previous zone data state
+        _state.update { it.copy(dataState = SelectZoneDataState.ZoneData(emptyList())) }
     }
 }

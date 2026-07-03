@@ -8,35 +8,44 @@ import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Serializable
 data class UserPreferences(
     val token: String? = null
 )
-object UserPreferencesSerializer: Serializer<UserPreferences> {
+object UserPreferencesSerializer : Serializer<UserPreferences> {
     override val defaultValue: UserPreferences
         get() = UserPreferences()
 
+    @OptIn(ExperimentalEncodingApi::class)
     override suspend fun readFrom(input: InputStream): UserPreferences {
-        val encryptedBytes = withContext(Dispatchers.IO) {
-            input.use { it.readBytes() }
+        return withContext(Dispatchers.IO) {
+            try {
+                val encryptedBytesBase64 = input.use { it.readBytes() }
+                if (encryptedBytesBase64.isEmpty()) return@withContext defaultValue
+
+                val encryptedBytes = Base64.decode(encryptedBytesBase64)
+                val decryptedBytes = Crypto.decrypt(encryptedBytes)
+
+                Json.decodeFromString(UserPreferences.serializer(), decryptedBytes.decodeToString())
+            } catch (e: Exception) {
+                e.printStackTrace()
+                defaultValue // Fallback seamlessly if decoding fails or keys rotate
+            }
         }
-        val encryptedBytesDecoded = Base64.decode(encryptedBytes)
-        val decryptedBytes = Crypto.decrypt(encryptedBytesDecoded)
-        val decodedJsonString = decryptedBytes.decodeToString()
-        return Json.decodeFromString(decodedJsonString)
     }
 
+    @OptIn(ExperimentalEncodingApi::class)
     override suspend fun writeTo(t: UserPreferences, output: OutputStream) {
-        val json = Json.encodeToString(t)
-        val bytes = json.toByteArray()
-        val encryptedBytes = Crypto.encrypt(bytes)
-        val encryptedBytesBase64 = Base64.encodeToByteArray(encryptedBytes)
         withContext(Dispatchers.IO) {
+            val jsonString = Json.encodeToString(UserPreferences.serializer(), t)
+            val encryptedBytes = Crypto.encrypt(jsonString.toByteArray(Charsets.UTF_8))
+            val encryptedBytesBase64 = Base64.encodeToByteArray(encryptedBytes)
+
             output.use {
                 it.write(encryptedBytesBase64)
             }
         }
     }
 }
-

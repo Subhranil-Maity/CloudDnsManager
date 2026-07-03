@@ -5,15 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -21,7 +16,7 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import com.subhranil.clouddnsmanager.onboading.OnBoardingScreen
 import com.subhranil.clouddnsmanager.selectzones.SelectZoneScreen
 import com.subhranil.clouddnsmanager.start.StartScreen
-import com.subhranil.clouddnsmanager.zone.ZoneDetailsScreen
+import com.subhranil.clouddnsmanager.dns.DnsRecordScreen
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.koin.compose.koinInject
@@ -46,8 +41,8 @@ fun RootNavigation(
                         NavDestinations.SelectZonesDestination.serializer()
                     )
                     subclass(
-                        NavDestinations.ZoneDetailsDestination::class,
-                        NavDestinations.ZoneDetailsDestination.serializer()
+                        NavDestinations.DnsRecordsDestination::class,
+                        NavDestinations.DnsRecordsDestination.serializer()
                     )
                     subclass(
                         NavDestinations.OnBoarding::class,
@@ -80,7 +75,7 @@ fun RootNavigation(
                 is NavDestinations.StartScreenDestination -> NavEntry(key) { StartScreen() }
                 is NavDestinations.OnBoarding -> NavEntry(key) { OnBoardingScreen() }
                 is NavDestinations.SelectZonesDestination -> NavEntry(key) { SelectZoneScreen() }
-                is NavDestinations.ZoneDetailsDestination -> NavEntry(key) { ZoneDetailsScreen() }
+                is NavDestinations.DnsRecordsDestination -> NavEntry(key) { DnsRecordScreen() }
                 else -> error("Unsupported navigation destination: $key")
             }
         }

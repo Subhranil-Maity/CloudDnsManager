@@ -1,4 +1,4 @@
-package com.subhranil.clouddnsmanager.zone.components
+package com.subhranil.clouddnsmanager.dns.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.subhranil.clouddnsmanager.R
 
 @Composable
 fun DetailRowItem(
@@ -63,7 +64,7 @@ fun DetailRowItem(
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector = ImageVector.vectorResource(com.subhranil.clouddnsmanager.R.drawable.copy_icon),
+                        imageVector = ImageVector.vectorResource(R.drawable.copy_icon),
                         contentDescription = "Copy field data",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
