@@ -29,7 +29,10 @@ Right now it's **view-only**, meaning you can browse and inspect your zones and 
 
 ## Screenshots
 
-*(Screenshots will be added here once the app hits a stable release)*
+| | |
+|---|---|
+| ![Select Zone](asserts/select_zone.jpg) | ![DNS Records](asserts/dns_records.jpg) |
+| ![Record Details](asserts/record_details.jpg) | |
 
 ---
 
