@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,6 +33,25 @@ fun SelectZoneScreen(
     viewModel: SelectZoneViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Logging out deletes the saved token, so require an explicit confirmation
+    if (state.showLogoutConfirmation) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onAction(SelectZoneIntent.DismissLogout) },
+            title = { Text("Log out?") },
+            text = { Text("Your saved Cloudflare API token will be removed from this device. You'll need to enter it again to sign back in.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.onAction(SelectZoneIntent.ConfirmLogout) }) {
+                    Text("Log out", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onAction(SelectZoneIntent.DismissLogout) }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     // Exhaustively branching the UI based directly on the sealed dataState
     when (val dataState = state.dataState) {
@@ -71,6 +92,13 @@ fun SelectZoneScreen(
                 ) {
                     Text(text = "Retry")
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                // Escape hatch when the saved token has been revoked or lost its permissions
+                TextButton(
+                    onClick = { viewModel.onAction(SelectZoneIntent.RequestLogout) }
+                ) {
+                    Text(text = "Log out")
+                }
             }
         }
 
@@ -80,6 +108,7 @@ fun SelectZoneScreen(
                 onZoneClick = { zone ->
                     viewModel.onAction(SelectZoneIntent.SelectZone(zone.id))
                 },
+                onLogout = { viewModel.onAction(SelectZoneIntent.RequestLogout) },
                 modifier = modifier.fillMaxSize(),
                 isLoading = false // Handled natively by our top-level state branching now
             )

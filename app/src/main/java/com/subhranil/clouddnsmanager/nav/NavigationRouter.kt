@@ -11,8 +11,6 @@ class NavigationRouter {
         listOf(NavDestinations.StartScreenDestination)
     )
     val navigationState: StateFlow<List<NavKey>> = _navigationState.asStateFlow()
-    val currentDestination: NavKey
-        get() = _navigationState.value.last()
     // Completely clear the stack and set new destinations
     fun resetWithStack(newStack: List<NavKey>) {
         Log.d("NavRouter", "Stack Reset With ${newStack.toString()}")

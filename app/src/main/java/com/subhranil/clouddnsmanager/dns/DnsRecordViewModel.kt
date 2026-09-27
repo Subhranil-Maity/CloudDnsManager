@@ -3,10 +3,10 @@ package com.subhranil.clouddnsmanager.dns
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.subhranil.clouddnsmanager.http.CloudflareClient
+import com.subhranil.clouddnsmanager.http.SessionManager
 import com.subhranil.clouddnsmanager.models.dns.DnsRecord
-import com.subhranil.clouddnsmanager.nav.NavDestinations
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -14,32 +14,35 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DnsRecordViewModel(
+    private val zoneId: String,
     private val router: NavigationRouter,
-    private val client: CloudflareClient
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DnsRecordState())
     val state = _state.asStateFlow()
+
+    private var loadJob: Job? = null
 
     init {
         loadDnsRecords()
     }
 
     private fun loadDnsRecords() {
-        viewModelScope.launch {
+        // Cancel any in-flight load so rapid Retry taps don't run parallel collectors
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             // Put the data block explicitly back into a pure Loading phase on initialization or retry clicks
             _state.update { it.copy(dnsRecordDataState = DnsRecordDataState.Loading) }
 
-            val currentDestination = router.currentDestination
-            if (currentDestination !is NavDestinations.DnsRecordsDestination) {
-                Log.e("DnsRecordViewModel", "Invalid navigation route target layer encountered.")
+            val client = sessionManager.clientOrNull()
+            if (client == null) {
                 _state.update {
-                    it.copy(dnsRecordDataState = DnsRecordDataState.Error("Invalid navigation context structure"))
+                    it.copy(dnsRecordDataState = DnsRecordDataState.Error("Session expired. Please log in again."))
                 }
                 return@launch
             }
 
-            val zoneId = currentDestination.zoneId
             val accumulatedRecords = mutableListOf<DnsRecord>()
 
             // Clean, infinite stream handling built straight off of the Ktor Paginated Flow implementation

@@ -35,26 +35,28 @@ class SessionManager(private val tokenStorage: TokenStorage) {
      * Call this when a user submits their API Token on your setup/onboarding screen.
      */
     suspend fun login(token: String): Boolean {
-        _sessionState.value = SessionState.Loading
+        // Deliberately not switching to Loading here: that would make MainActivity tear down
+        // the navigation tree (and the onboarding screen's error state) mid-verification.
+        // The onboarding screen shows its own Verifying spinner instead.
+        val temporaryClient = CloudflareClient(token = token)
         return try {
-            val temporaryClient = CloudflareClient(token = token)
-
             // Perform a lightweight network check to confirm the token is working
             temporaryClient.verifyToken()
 
             // If the call succeeds, commit it to disk and transition state
             tokenStorage.saveToken(token)
             _sessionState.value = SessionState.Authenticated(temporaryClient)
-            // FORCE YIELD: Guarantees StateFlow consumers process the Authenticated state
-            // before the true boolean returns to the ViewModel
-            kotlinx.coroutines.yield()
             true
         } catch (e: Exception) {
             e.printStackTrace()
-            _sessionState.value = SessionState.Unauthenticated
+            temporaryClient.close()
             false // Verification failed (bad token or offline network)
         }
     }
+
+    /** The active client, or null when there is no authenticated session. */
+    fun clientOrNull(): CloudflareClient? =
+        (_sessionState.value as? SessionState.Authenticated)?.client
 
     /**
      * Clear all persistent credentials out of the sandbox and dispose of engine threads.

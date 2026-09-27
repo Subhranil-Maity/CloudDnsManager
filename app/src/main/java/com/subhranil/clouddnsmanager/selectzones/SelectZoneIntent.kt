@@ -10,5 +10,11 @@ sealed class SelectZoneIntent{
     data class SelectZone(val zoneId: String): SelectZoneIntent()
     @Serializable
     data object Retry: SelectZoneIntent()
+    @Serializable
+    data object RequestLogout: SelectZoneIntent()
+    @Serializable
+    data object DismissLogout: SelectZoneIntent()
+    @Serializable
+    data object ConfirmLogout: SelectZoneIntent()
 
 }

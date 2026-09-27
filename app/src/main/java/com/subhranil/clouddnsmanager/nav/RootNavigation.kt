@@ -75,7 +75,7 @@ fun RootNavigation(
                 is NavDestinations.StartScreenDestination -> NavEntry(key) { StartScreen() }
                 is NavDestinations.OnBoarding -> NavEntry(key) { OnBoardingScreen() }
                 is NavDestinations.SelectZonesDestination -> NavEntry(key) { SelectZoneScreen() }
-                is NavDestinations.DnsRecordsDestination -> NavEntry(key) { DnsRecordScreen() }
+                is NavDestinations.DnsRecordsDestination -> NavEntry(key) { DnsRecordScreen(zoneId = key.zoneId) }
                 else -> error("Unsupported navigation destination: $key")
             }
         }

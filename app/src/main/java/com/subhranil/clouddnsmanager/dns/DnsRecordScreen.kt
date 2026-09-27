@@ -24,12 +24,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.subhranil.clouddnsmanager.dns.components.DnsRecordsScreen
 import com.subhranil.clouddnsmanager.models.dns.DnsRecord
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 
 @Composable
 fun DnsRecordScreen(
+    zoneId: String,
     modifier: Modifier = Modifier,
-    viewModel: DnsRecordViewModel = koinViewModel()
+    viewModel: DnsRecordViewModel = koinViewModel { parametersOf(zoneId) }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 

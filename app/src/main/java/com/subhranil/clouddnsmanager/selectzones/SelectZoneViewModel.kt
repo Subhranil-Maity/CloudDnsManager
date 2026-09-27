@@ -3,10 +3,11 @@ package com.subhranil.clouddnsmanager.selectzones
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.subhranil.clouddnsmanager.http.CloudflareClient
+import com.subhranil.clouddnsmanager.http.SessionManager
 import com.subhranil.clouddnsmanager.models.zone.Zone
 import com.subhranil.clouddnsmanager.nav.NavDestinations
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -15,19 +16,31 @@ import kotlinx.coroutines.launch
 
 class SelectZoneViewModel(
     private val router: NavigationRouter,
-    private val client: CloudflareClient
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SelectZoneState())
     val state = _state.asStateFlow()
+
+    private var loadJob: Job? = null
 
     init {
         loadZones()
     }
 
     private fun loadZones() {
-        viewModelScope.launch {
+        // Cancel any in-flight load so rapid Retry taps don't run parallel collectors
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _state.update { it.copy(dataState = SelectZoneDataState.Loading) }
+
+            val client = sessionManager.clientOrNull()
+            if (client == null) {
+                _state.update {
+                    it.copy(dataState = SelectZoneDataState.Error("Session expired. Please log in again."))
+                }
+                return@launch
+            }
 
             val accumulatedZones = mutableListOf<Zone>()
 
@@ -56,7 +69,9 @@ class SelectZoneViewModel(
         when (intent) {
             is SelectZoneIntent.SelectZone -> selectZone(intent.zoneId)
             is SelectZoneIntent.Retry -> loadZones()
-//            is SelectZoneIntent.DismissError -> dismissError()
+            is SelectZoneIntent.RequestLogout -> _state.update { it.copy(showLogoutConfirmation = true) }
+            is SelectZoneIntent.DismissLogout -> _state.update { it.copy(showLogoutConfirmation = false) }
+            is SelectZoneIntent.ConfirmLogout -> logout()
         }
     }
 
@@ -65,8 +80,9 @@ class SelectZoneViewModel(
         router.push(NavDestinations.DnsRecordsDestination(zoneId))
     }
 
-    private fun dismissError() {
-        // Fall back gracefully to displaying an empty or previous zone data state
-        _state.update { it.copy(dataState = SelectZoneDataState.ZoneData(emptyList())) }
+    private fun logout() {
+        _state.update { it.copy(showLogoutConfirmation = false) }
+        // MainActivity observes the Unauthenticated state and resets the stack to OnBoarding
+        viewModelScope.launch { sessionManager.logout() }
     }
 }

@@ -70,17 +70,9 @@ class CloudflareClient(
         pagination: PaginationParams = PaginationParams(),
     ): Page<Zone> {
         val params = filter.toQueryParams() + pagination.toQueryParams()
-        // Use engine.http directly so we can decode the full envelope (including
-        // result_info) in one request — engine.get() discards the envelope wrapper.
-        val response = engine.http.get(apiUrl("/zones")) {
-            params.forEach { (k, v) -> parameter(k, v) }
-        }
-        val envelope = cfJson.decodeFromString(
-            CloudflareResponse.serializer(
-                kotlinx.serialization.builtins.ListSerializer(Zone.serializer())
-            ),
-            response.body<String>()
-        )
+        // getEnvelope keeps result_info (needed for pagination) while still applying
+        // the same status / success / network error mapping as engine.get().
+        val envelope = engine.getEnvelope<List<Zone>>("/zones", params)
         return Page(envelope.result.orEmpty(), envelope.resultInfo)
     }
 
@@ -120,15 +112,7 @@ class CloudflareClient(
         pagination: PaginationParams = PaginationParams(),
     ): Page<DnsRecord> {
         val params = filter.toQueryParams() + pagination.toQueryParams()
-        val response = engine.http.get(apiUrl("/zones/$zoneId/dns_records")) {
-            params.forEach { (k, v) -> parameter(k, v) }
-        }
-        val envelope = cfJson.decodeFromString(
-            CloudflareResponse.serializer(
-                kotlinx.serialization.builtins.ListSerializer(DnsRecord.serializer())
-            ),
-            response.body<String>()
-        )
+        val envelope = engine.getEnvelope<List<DnsRecord>>("/zones/$zoneId/dns_records", params)
         return Page(envelope.result.orEmpty(), envelope.resultInfo)
     }
 

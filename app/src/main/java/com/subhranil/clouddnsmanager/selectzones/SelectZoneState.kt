@@ -9,5 +9,6 @@ sealed class SelectZoneDataState {
 }
 
 data class SelectZoneState(
-    val dataState: SelectZoneDataState = SelectZoneDataState.Loading
+    val dataState: SelectZoneDataState = SelectZoneDataState.Loading,
+    val showLogoutConfirmation: Boolean = false
 )

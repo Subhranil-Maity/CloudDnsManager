@@ -15,6 +15,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import java.io.IOException
 
 internal const val BASE_URL = "https://api.cloudflare.com/client/v4"
@@ -76,13 +77,25 @@ internal class CloudflareHttpClient(
     suspend inline fun <reified T> get(
         path: String,
         queryParams: List<Pair<String, String>> = emptyList(),
-    ): T = execute(queryParams) { get(apiUrl(path)) }  // ← full URL here
+    ): T {
+        @Suppress("UNCHECKED_CAST")
+        return getEnvelope<T>(path, queryParams).result as T
+    }
+
+    /** Execute a GET and return the full Cloudflare envelope (including result_info). */
+    suspend inline fun <reified T> getEnvelope(
+        path: String,
+        queryParams: List<Pair<String, String>> = emptyList(),
+    ): CloudflareResponse<T> = executeEnvelope {
+        get(apiUrl(path)) {  // ← full URL here
+            queryParams.forEach { (k, v) -> parameter(k, v) }
+        }
+    }
 
     /** Generic execute: wraps network + deserialisation errors, validates CF envelope. */
-    suspend inline fun <reified T> execute(
-        queryParams: List<Pair<String, String>> = emptyList(),
+    suspend inline fun <reified T> executeEnvelope(
         crossinline block: suspend HttpClient.() -> HttpResponse,
-    ): T {
+    ): CloudflareResponse<T> {
         val response = try {
             http.block()
         } catch (e: IOException) {
@@ -91,6 +104,13 @@ internal class CloudflareHttpClient(
 
         if (!response.status.isSuccess()) {
             val body = runCatching { response.bodyAsText() }.getOrDefault("")
+            // Cloudflare usually sends an error envelope even on 4xx; surface its errors if present.
+            val errors = runCatching {
+                cfJson.decodeFromString(CloudflareResponse.serializer(JsonElement.serializer()), body).errors
+            }.getOrDefault(emptyList())
+            if (errors.isNotEmpty()) {
+                throw CloudflareException.ApiError(errors, response.status.value)
+            }
             throw CloudflareException.HttpError(response.status.value, body)
         }
 
@@ -104,8 +124,7 @@ internal class CloudflareHttpClient(
             throw CloudflareException.ApiError(envelope.errors, response.status.value)
         }
 
-        @Suppress("UNCHECKED_CAST")
-        return envelope.result as T
+        return envelope
     }
 
     override fun close() = http.close()
