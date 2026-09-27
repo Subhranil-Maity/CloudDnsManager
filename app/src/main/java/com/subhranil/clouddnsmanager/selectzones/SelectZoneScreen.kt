@@ -109,6 +109,7 @@ fun SelectZoneScreen(
                     viewModel.onAction(SelectZoneIntent.SelectZone(zone.id))
                 },
                 onLogout = { viewModel.onAction(SelectZoneIntent.RequestLogout) },
+                onOpenSecurity = { viewModel.onAction(SelectZoneIntent.OpenSecurity) },
                 modifier = modifier.fillMaxSize(),
                 isLoading = false // Handled natively by our top-level state branching now
             )

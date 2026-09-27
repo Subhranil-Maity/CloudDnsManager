@@ -66,7 +66,7 @@ class SessionManager(private val tokenStorage: TokenStorage) {
         if (currentState is SessionState.Authenticated) {
             currentState.client.close() // Closes HTTP client engines cleanly
         }
-        tokenStorage.clearToken()
+        tokenStorage.clearAll() // also removes the app PIN / biometric settings
         _sessionState.value = SessionState.Unauthenticated
     }
 }

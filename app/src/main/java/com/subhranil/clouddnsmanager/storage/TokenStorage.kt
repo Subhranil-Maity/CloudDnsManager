@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.Flow
 interface TokenStorage {
     suspend fun getToken(): String?
     suspend fun saveToken(token: String)
-    suspend fun clearToken()
+    /** Wipe the token and every other stored preference (PIN, biometrics, lockout state). */
+    suspend fun clearAll()
 }
 
 class DataStoreTokenStorage(
@@ -25,9 +26,7 @@ class DataStoreTokenStorage(
         }
     }
 
-    override suspend fun clearToken() {
-        dataStore.updateData { currentPrefs ->
-            currentPrefs.copy(token = null)
-        }
+    override suspend fun clearAll() {
+        dataStore.updateData { UserPreferences() }
     }
 }

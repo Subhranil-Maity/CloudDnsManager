@@ -12,6 +12,13 @@ import com.subhranil.clouddnsmanager.storage.TokenStorage
 import com.subhranil.clouddnsmanager.storage.UserPreferences
 import com.subhranil.clouddnsmanager.storage.UserPreferencesSerializer
 import com.subhranil.clouddnsmanager.dns.DnsRecordViewModel
+import com.subhranil.clouddnsmanager.lock.LockViewModel
+import com.subhranil.clouddnsmanager.security.AppLockManager
+import com.subhranil.clouddnsmanager.security.AppLockRepository
+import com.subhranil.clouddnsmanager.security.AuthGate
+import com.subhranil.clouddnsmanager.security.BiometricAuthenticator
+import com.subhranil.clouddnsmanager.security.settings.SecuritySettingsViewModel
+import com.subhranil.clouddnsmanager.security.setup.PinSetupViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
@@ -23,6 +30,9 @@ val appModule = module {
     viewModelOf(::OnBoardingViewModel)
     viewModelOf(::SelectZoneViewModel)
     viewModel { (zoneId: String) -> DnsRecordViewModel(zoneId, get(), get()) }
+    viewModelOf(::LockViewModel)
+    viewModelOf(::SecuritySettingsViewModel)
+    viewModel { (changing: Boolean) -> PinSetupViewModel(changing, get(), get()) }
 
     // 2. Navigation
     singleOf(::NavigationRouter)
@@ -40,4 +50,10 @@ val appModule = module {
 
     // 5. Shared Session Manager
     single { SessionManager(get()) }
+
+    // 6. App lock (optional PIN + biometrics) and the destructive-action AuthGate
+    single { AppLockRepository(get()) }
+    single { AppLockManager(get()) }
+    single { BiometricAuthenticator(androidContext()) }
+    single { AuthGate() }
 }

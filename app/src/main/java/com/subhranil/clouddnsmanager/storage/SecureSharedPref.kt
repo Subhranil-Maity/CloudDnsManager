@@ -12,7 +12,15 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Serializable
 data class UserPreferences(
-    val token: String? = null
+    val token: String? = null,
+    // --- App lock (see security/AppLockRepository) ---
+    /** Base64 PBKDF2 hash of the app PIN; the PIN itself is never stored. */
+    val pinHash: String? = null,
+    /** Base64 random salt used for [pinHash]. */
+    val pinSalt: String? = null,
+    val biometricsEnabled: Boolean = false,
+    val failedPinAttempts: Int = 0,
+    val lockoutUntilMs: Long = 0,
 )
 object UserPreferencesSerializer : Serializer<UserPreferences> {
     override val defaultValue: UserPreferences

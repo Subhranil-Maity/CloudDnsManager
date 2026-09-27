@@ -64,5 +64,8 @@ dependencies {
     implementation(libs.bundles.koin)
     implementation(libs.bundles.ktor)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.lifecycle.process)
 
 }

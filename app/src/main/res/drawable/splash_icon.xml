@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The splash icon is clipped to a circle 2/3 the size of its canvas. The inset keeps the
+     whole cloud inside that circle while the circle stays within the icon's dark body,
+     so it blends into @color/splash_background. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+        android:drawable="@drawable/icon_without_backround"
+        android:inset="12%" />

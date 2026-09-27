@@ -245,15 +245,45 @@ sealed interface SessionState {
 - `login(token)` — Creates temp client, verifies token against Cloudflare, saves on success
 - `logout()` — Closes client, clears token, transitions to Unauthenticated
 
-Koin provides `CloudflareClient` as a **factory** that reads from `SessionManager`:
+- `clientOrNull()` — Returns the active `CloudflareClient`, or `null` when logged out. ViewModels call it at load time and show a "Session expired" error instead of crashing.
 
-```kotlin
-factory<CloudflareClient> {
-    val state = get<SessionManager>().sessionState.value
-    if (state is SessionState.Authenticated) state.client
-    else throw IllegalStateException("CloudflareClient requested but user is not authenticated!")
-}
-```
+---
+
+## 8a. Security Rules
+
+> **Rule: every destructive action or change must pass biometric or PIN authentication before it runs.**
+> This covers logging out, changing or removing the app PIN, turning off biometric unlock, and every future write operation (DNS record create / edit / delete).
+
+How to follow it:
+
+1. Show a confirmation dialog first (destructive button tinted with `colorScheme.error`).
+2. From the **ViewModel** (never from the UI), call `authGate.authorize("<reason shown to the user>")` and only proceed when it returns `true`:
+   ```kotlin
+   viewModelScope.launch {
+       if (authGate.authorize("Delete DNS record")) client.deleteDnsRecord(...)
+   }
+   ```
+3. Never call a write endpoint directly from a composable.
+
+What `AuthGate.authorize` asks for (the prompt is drawn by `AuthGateHost`, placed once in `MainActivity`):
+
+| Situation | Prompt |
+|---|---|
+| App PIN set, biometrics enabled | System biometric prompt, with "Use PIN" falling back to the PIN dialog |
+| App PIN set, biometrics off | App PIN dialog |
+| No app PIN, device has a screen lock | System prompt accepting the phone's biometrics or device PIN |
+| No app PIN, no device screen lock | Allowed. The confirmation dialog is the only gate. |
+
+### App lock
+- **Optional 6-digit PIN**, set in *Security* (lock icon on the Select Zone top bar). Biometric unlock can be enabled on top of it; the PIN is always the fallback.
+- The app locks on **cold start** and after **more than 60 s in the background** (`AppLockManager`, driven by `ProcessLifecycleOwner` and `SystemClock.elapsedRealtime`).
+- `LockScreen` is drawn **over** the navigation tree, so the back stack survives. "Forgot PIN? Log out" wipes the token and PIN and is the only way past the lock without authenticating.
+- While a PIN is set, `FLAG_SECURE` keeps the app out of screenshots and the recent-apps thumbnail.
+
+### PIN storage and brute-force policy
+- Only a **salted PBKDF2-HMAC-SHA256 hash** (120k iterations, 16-byte random salt) is stored, inside the encrypted DataStore. The PIN itself is never saved (`PinHasher`).
+- 5 wrong PINs give a **30 s cooldown**, and each further failure doubles it (capped at about 8.5 h). During a cooldown the PIN isn't checked at all. Wrong PINs never wipe data (`PinLockoutPolicy`, unit tested).
+- Logging out clears **all** preferences, including the PIN and the biometric setting.
 
 ---
 

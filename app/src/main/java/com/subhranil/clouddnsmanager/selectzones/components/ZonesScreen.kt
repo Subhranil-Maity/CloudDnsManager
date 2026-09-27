@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,7 @@ fun ZonesScreen(
     isLoading: Boolean, // Added state logic parameter
     onZoneClick: (Zone) -> Unit,
     onLogout: () -> Unit,
+    onOpenSecurity: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -41,6 +43,12 @@ fun ZonesScreen(
                     Text("Select Zone", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 },
                 actions = {
+                    IconButton(onClick = onOpenSecurity) {
+                        Icon(
+                            imageVector = Icons.Filled.Lock,
+                            contentDescription = "Security"
+                        )
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,

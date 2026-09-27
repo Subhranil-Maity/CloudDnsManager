@@ -16,5 +16,7 @@ sealed class SelectZoneIntent{
     data object DismissLogout: SelectZoneIntent()
     @Serializable
     data object ConfirmLogout: SelectZoneIntent()
+    @Serializable
+    data object OpenSecurity: SelectZoneIntent()
 
 }

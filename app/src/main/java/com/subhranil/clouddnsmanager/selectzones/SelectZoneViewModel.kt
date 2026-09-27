@@ -7,6 +7,7 @@ import com.subhranil.clouddnsmanager.http.SessionManager
 import com.subhranil.clouddnsmanager.models.zone.Zone
 import com.subhranil.clouddnsmanager.nav.NavDestinations
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
+import com.subhranil.clouddnsmanager.security.AuthGate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 
 class SelectZoneViewModel(
     private val router: NavigationRouter,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val authGate: AuthGate
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SelectZoneState())
@@ -72,6 +74,7 @@ class SelectZoneViewModel(
             is SelectZoneIntent.RequestLogout -> _state.update { it.copy(showLogoutConfirmation = true) }
             is SelectZoneIntent.DismissLogout -> _state.update { it.copy(showLogoutConfirmation = false) }
             is SelectZoneIntent.ConfirmLogout -> logout()
+            is SelectZoneIntent.OpenSecurity -> router.push(NavDestinations.SecuritySettings)
         }
     }
 
@@ -82,7 +85,10 @@ class SelectZoneViewModel(
 
     private fun logout() {
         _state.update { it.copy(showLogoutConfirmation = false) }
-        // MainActivity observes the Unauthenticated state and resets the stack to OnBoarding
-        viewModelScope.launch { sessionManager.logout() }
+        // Security rule: destructive actions must pass biometric / PIN auth (see AuthGate).
+        // MainActivity observes the Unauthenticated state and resets the stack to OnBoarding.
+        viewModelScope.launch {
+            if (authGate.authorize("Log out of Dns Manager")) sessionManager.logout()
+        }
     }
 }

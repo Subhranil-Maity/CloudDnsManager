@@ -17,6 +17,8 @@ import com.subhranil.clouddnsmanager.onboading.OnBoardingScreen
 import com.subhranil.clouddnsmanager.selectzones.SelectZoneScreen
 import com.subhranil.clouddnsmanager.start.StartScreen
 import com.subhranil.clouddnsmanager.dns.DnsRecordScreen
+import com.subhranil.clouddnsmanager.security.settings.SecuritySettingsScreen
+import com.subhranil.clouddnsmanager.security.setup.PinSetupScreen
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import org.koin.compose.koinInject
@@ -48,6 +50,14 @@ fun RootNavigation(
                         NavDestinations.OnBoarding::class,
                         NavDestinations.OnBoarding.serializer()
                     )
+                    subclass(
+                        NavDestinations.SecuritySettings::class,
+                        NavDestinations.SecuritySettings.serializer()
+                    )
+                    subclass(
+                        NavDestinations.PinSetup::class,
+                        NavDestinations.PinSetup.serializer()
+                    )
                 }
             }
         },
@@ -76,6 +86,8 @@ fun RootNavigation(
                 is NavDestinations.OnBoarding -> NavEntry(key) { OnBoardingScreen() }
                 is NavDestinations.SelectZonesDestination -> NavEntry(key) { SelectZoneScreen() }
                 is NavDestinations.DnsRecordsDestination -> NavEntry(key) { DnsRecordScreen(zoneId = key.zoneId) }
+                is NavDestinations.SecuritySettings -> NavEntry(key) { SecuritySettingsScreen() }
+                is NavDestinations.PinSetup -> NavEntry(key) { PinSetupScreen(changing = key.changing) }
                 else -> error("Unsupported navigation destination: $key")
             }
         }
