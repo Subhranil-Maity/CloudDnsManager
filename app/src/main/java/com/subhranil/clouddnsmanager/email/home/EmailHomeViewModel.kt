@@ -6,6 +6,7 @@ import com.subhranil.clouddnsmanager.email.api.emailRoutingApi
 import com.subhranil.clouddnsmanager.email.nav.EmailDestination
 import com.subhranil.clouddnsmanager.http.SessionManager
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
+import com.subhranil.clouddnsmanager.isPermissionError
 import com.subhranil.clouddnsmanager.toUserMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -52,10 +53,19 @@ class EmailHomeViewModel(
                 _state.update { it.copy(dataState = EmailHomeDataState.Loaded(settings)) }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
-                _state.update {
-                    it.copy(dataState = EmailHomeDataState.Error(e.toUserMessage(permissionHint = "Email Routing Rules: Read")))
+                // GET /email/routing needs "Zone Settings: Read", not the Email Routing permissions
+                val dataState = if (e.isPermissionError()) {
+                    EmailHomeDataState.StatusNotPermitted
+                } else {
+                    EmailHomeDataState.Error(e.toUserMessage(permissionHint = STATUS_PERMISSION))
                 }
+                _state.update { it.copy(dataState = dataState) }
             }
         }
+    }
+
+    private companion object {
+        /** Permission Cloudflare requires for GET /zones/{id}/email/routing. */
+        const val STATUS_PERMISSION = "Zone Settings: Read"
     }
 }

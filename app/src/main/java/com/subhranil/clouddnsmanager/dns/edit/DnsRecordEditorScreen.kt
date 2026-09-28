@@ -38,7 +38,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -87,14 +86,8 @@ fun DnsRecordEditorScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    if (state.saving) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(end = 4.dp), strokeWidth = 2.dp)
-                        Spacer(Modifier.width(12.dp))
-                    } else if (state.readOnlyReason == null && state.loadState == DnsEditorLoadState.Ready) {
-                        TextButton(onClick = { onAction(DnsRecordEditorIntent.Save) }) { Text("Save") }
-                    }
-                },
+                // No top-bar Save: the single "Create record" / "Save changes" button at the
+                // bottom of the form is the only save action (it also shows the saving state).
             )
         },
     ) { innerPadding ->

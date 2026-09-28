@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -52,6 +53,7 @@ import com.subhranil.clouddnsmanager.email.activity.ActivityState
 import com.subhranil.clouddnsmanager.email.activity.ActivityViewModel
 import com.subhranil.clouddnsmanager.email.activity.activityItems
 import com.subhranil.clouddnsmanager.email.components.ConfirmDestructiveDialog
+import com.subhranil.clouddnsmanager.email.components.CopyButton
 import com.subhranil.clouddnsmanager.email.components.EmailError
 import com.subhranil.clouddnsmanager.email.components.EmailLoading
 import com.subhranil.clouddnsmanager.email.components.LockCard
@@ -151,10 +153,18 @@ private fun AliasDetailContent(
         item(key = "summary") {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        display.title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Selectable too, so a long-press works as well as the copy button
+                        SelectionContainer(Modifier.weight(1f)) {
+                            Text(
+                                display.title,
+                                style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold),
+                            )
+                        }
+                        display.address?.let { address ->
+                            CopyButton(text = address, label = "Email address")
+                        }
+                    }
                     Text(display.targetSummary, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace))
                     display.name?.takeIf { it.isNotBlank() && display.address != null }?.let {
                         Text("Rule name: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

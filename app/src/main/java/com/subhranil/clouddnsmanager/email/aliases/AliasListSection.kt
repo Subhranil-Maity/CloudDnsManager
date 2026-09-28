@@ -1,5 +1,6 @@
 package com.subhranil.clouddnsmanager.email.aliases
 
+import com.subhranil.clouddnsmanager.email.components.CopyButton
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -186,7 +187,10 @@ private fun AliasRowItem(
                     )
                 }
             }
-            Spacer(Modifier.width(12.dp))
+            alias.address?.let { address ->
+                CopyButton(text = address, label = "Email address")
+            }
+            Spacer(Modifier.width(4.dp))
             if (busy) {
                 CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             } else {

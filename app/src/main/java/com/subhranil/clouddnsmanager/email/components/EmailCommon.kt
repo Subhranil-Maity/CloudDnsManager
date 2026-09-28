@@ -20,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -36,9 +37,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
+import com.subhranil.clouddnsmanager.R
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -215,5 +223,29 @@ fun formatTimestamp(iso: String?): String {
             .format(Instant.parse(iso))
     } catch (e: Exception) {
         iso
+    }
+}
+
+/**
+ * Copies [text] to the clipboard and confirms with a toast ("[label] copied"), using the same
+ * icon as the DNS record details.
+ */
+@Composable
+fun CopyButton(text: String, label: String, modifier: Modifier = Modifier) {
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    IconButton(
+        onClick = {
+            clipboardManager.setText(AnnotatedString(text))
+            Toast.makeText(context, "$label copied", Toast.LENGTH_SHORT).show()
+        },
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = ImageVector.vectorResource(R.drawable.copy_icon),
+            contentDescription = "Copy $label",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }

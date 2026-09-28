@@ -138,7 +138,12 @@ internal class EmailRoutingApi(private val engine: CloudflareHttpClient) {
             val items = envelope.result.orEmpty()
             all += items
             val info = envelope.resultInfo
-            val hasMore = if (info != null) info.page < info.totalPages else items.size >= PER_PAGE
+            // Email Routing lists send total_count but no total_pages, so prefer counting items.
+            val hasMore = when {
+                info == null -> items.size >= PER_PAGE
+                info.totalCount > 0 -> all.size < info.totalCount
+                else -> info.page < info.totalPages
+            }
             if (!hasMore || items.isEmpty()) break
             page++
         }

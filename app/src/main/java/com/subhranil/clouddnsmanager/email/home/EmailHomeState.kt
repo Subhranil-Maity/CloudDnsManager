@@ -6,6 +6,11 @@ sealed interface EmailHomeDataState {
     data object Loading : EmailHomeDataState
     data class Error(val message: String) : EmailHomeDataState
     data class Loaded(val settings: EmailRoutingSettings) : EmailHomeDataState
+    /**
+     * The token may not read the status (it needs "Zone Settings: Read", which aliases and
+     * addresses don't). Not an error: the tabs still work, so only a quiet note is shown.
+     */
+    data object StatusNotPermitted : EmailHomeDataState
 }
 
 enum class EmailTab(val title: String) {

@@ -122,6 +122,9 @@ private fun problemText(settings: EmailRoutingSettings): String? {
 private fun RoutingStatusBanner(dataState: EmailHomeDataState, onRetry: () -> Unit) {
     when (dataState) {
         EmailHomeDataState.Loading -> LinearProgressIndicator(Modifier.fillMaxWidth())
+        // The status is optional extra info that needs "Zone Settings: Read". Without that
+        // permission everything else still works, so show nothing rather than a warning.
+        EmailHomeDataState.StatusNotPermitted -> Unit
         is EmailHomeDataState.Error -> WarningCard(
             text = "Couldn't read the Email Routing status. ${dataState.message}",
             onRetry = onRetry,

@@ -1,5 +1,7 @@
 package com.subhranil.clouddnsmanager.email.addresses
 
+import com.subhranil.clouddnsmanager.email.components.CopyButton
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -284,7 +286,12 @@ private fun AddressDetailSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(address.email, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SelectionContainer(Modifier.weight(1f)) {
+                    Text(address.email, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                }
+                CopyButton(text = address.email, label = "Email address")
+            }
             VerificationBadge(address)
             if (!address.isVerified) {
                 Text(
