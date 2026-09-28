@@ -11,7 +11,12 @@ import kotlinx.coroutines.channels.ReceiveChannel
  * ViewModels call [authorize] *after* their confirmation dialog and only proceed on `true`.
  * The prompt itself is rendered by [AuthGateHost], which lives once in MainActivity.
  */
-class AuthGate {
+fun interface Authorizer {
+    /** Returns true only if the user passed biometric / PIN / device-credential authentication. */
+    suspend fun authorize(reason: String): Boolean
+}
+
+class AuthGate : Authorizer {
 
     internal class Request(val reason: String) {
         val result = CompletableDeferred<Boolean>()
@@ -21,7 +26,7 @@ class AuthGate {
     internal val requests: ReceiveChannel<Request> = _requests
 
     /** Suspends until the user passes (true) or cancels / fails (false) authentication. */
-    suspend fun authorize(reason: String): Boolean {
+    override suspend fun authorize(reason: String): Boolean {
         val request = Request(reason)
         _requests.send(request)
         return try {

@@ -10,21 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class PinSetupStep { Enter, Confirm }
-
-data class PinSetupState(
-    val changing: Boolean,
-    val step: PinSetupStep = PinSetupStep.Enter,
-    val pin: String = "",
-    val error: String? = null,
-    val saving: Boolean = false,
-)
-
-sealed interface PinSetupIntent {
-    data class UpdatePin(val pin: String) : PinSetupIntent
-    data object Back : PinSetupIntent
-}
-
 /**
  * Full-screen "choose PIN → confirm PIN" flow. Only reachable from Security settings:
  * directly when no PIN exists yet, or after AuthGate approval when changing an existing PIN.

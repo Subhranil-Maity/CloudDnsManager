@@ -17,10 +17,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 
 private const val SUPPORTING_INFO_TEXT =
-    "Provide an API token with Zone Read and DNS Read permissions to synchronize your infrastructure dashboard. Make sure that the Token has the required permissions."
+    "Provide a Cloudflare API token with at least Zone: Read and DNS: Read. To edit DNS records and manage email aliases, also grant DNS: Edit, Email Routing Rules: Edit, Email Routing Addresses: Edit (account) and Analytics: Read."
 
 private const val SUCCESS_INFO_TEXT =
-    "Your Cloudflare API token has been successfully validated with Zone Read and DNS Read permissions. You can now proceed to manage your infrastructure domains."
+    "Your Cloudflare API token has been validated. Features your token doesn't have permission for will tell you which permission to add."
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

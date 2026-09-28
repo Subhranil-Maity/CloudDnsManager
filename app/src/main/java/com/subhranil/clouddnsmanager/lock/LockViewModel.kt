@@ -12,24 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class LockScreenState(
-    val pin: String = "",
-    val error: String? = null,
-    val lockedOutUntilMs: Long = 0,
-    val verifying: Boolean = false,
-    val biometricsEnabled: Boolean = false,
-    val showForgotPinConfirmation: Boolean = false,
-)
-
-sealed interface LockScreenIntent {
-    data class UpdatePin(val pin: String) : LockScreenIntent
-    data object Submit : LockScreenIntent
-    data object BiometricSucceeded : LockScreenIntent
-    data object ForgotPin : LockScreenIntent
-    data object DismissForgotPin : LockScreenIntent
-    data object ConfirmForgotPin : LockScreenIntent
-}
-
 class LockViewModel(
     private val repository: AppLockRepository,
     private val lockManager: AppLockManager,

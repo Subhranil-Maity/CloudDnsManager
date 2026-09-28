@@ -40,7 +40,6 @@ import com.subhranil.clouddnsmanager.http.SessionState
 import com.subhranil.clouddnsmanager.nav.NavDestinations
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
 import com.subhranil.clouddnsmanager.nav.RootNavigation
-import com.subhranil.clouddnsmanager.storage.UserPreferencesSerializer
 import com.subhranil.clouddnsmanager.ui.theme.CloudDnsManagerTheme
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject

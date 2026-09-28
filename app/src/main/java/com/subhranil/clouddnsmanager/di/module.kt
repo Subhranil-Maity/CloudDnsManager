@@ -11,7 +11,8 @@ import com.subhranil.clouddnsmanager.storage.DataStoreTokenStorage
 import com.subhranil.clouddnsmanager.storage.TokenStorage
 import com.subhranil.clouddnsmanager.storage.UserPreferences
 import com.subhranil.clouddnsmanager.storage.UserPreferencesSerializer
-import com.subhranil.clouddnsmanager.dns.DnsRecordViewModel
+import com.subhranil.clouddnsmanager.nav.NavDestinations
+import com.subhranil.clouddnsmanager.zone.ZoneHubViewModel
 import com.subhranil.clouddnsmanager.lock.LockViewModel
 import com.subhranil.clouddnsmanager.security.AppLockManager
 import com.subhranil.clouddnsmanager.security.AppLockRepository
@@ -29,7 +30,7 @@ val appModule = module {
     // 1. ViewModels
     viewModelOf(::OnBoardingViewModel)
     viewModelOf(::SelectZoneViewModel)
-    viewModel { (zoneId: String) -> DnsRecordViewModel(zoneId, get(), get()) }
+    viewModel { (hub: NavDestinations.ZoneHub) -> ZoneHubViewModel(hub, get()) }
     viewModelOf(::LockViewModel)
     viewModelOf(::SecuritySettingsViewModel)
     viewModel { (changing: Boolean) -> PinSetupViewModel(changing, get(), get()) }
@@ -49,7 +50,7 @@ val appModule = module {
     single<TokenStorage> { DataStoreTokenStorage(get()) }
 
     // 5. Shared Session Manager
-    single { SessionManager(get()) }
+    single { SessionManager(get(), get()) }
 
     // 6. App lock (optional PIN + biometrics) and the destructive-action AuthGate
     single { AppLockRepository(get()) }

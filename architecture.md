@@ -119,6 +119,35 @@ com.subhranil.clouddnsmanager/
 
 ---
 
+## 4a. Feature Packages and Shared Services
+
+Each feature lives in its own package and owns everything inside it, so features can be built in parallel without touching shared files.
+
+| Package | Owns |
+|---|---|
+| `dns/` (+ `models/dns/`) | DNS records: screens, `dns/api/DnsApi`, `dns/nav/DnsNav`, `dns/di/dnsModule` |
+| `email/` | Email Routing: aliases, destination addresses, activity; `email/api/EmailRoutingApi`, `email/nav/EmailNav`, `email/di/emailModule` |
+
+**Extension points (shared, don't edit from a feature):**
+- **Navigation:** a feature declares its own `NavKey` sealed interface in `<feature>/nav/`, plus `register<Feature>Destinations()` (serializers) and `<feature>Entry(key)` (screens). `RootNavigation` only calls these.
+- **Dependency injection:** each feature has its own Koin module in `<feature>/di/`, loaded from `MyApp`.
+- **API:** each feature has its own API class built on the shared `CloudflareHttpClient` (`get` / `getEnvelope` / `post` / `put` / `patch` / `delete`), obtained with `client.dnsApi()` or `client.emailRoutingApi()`. `CloudflareClient` itself isn't extended per feature.
+- **Error messages:** `Throwable.toUserMessage(permissionHint)` in `CloudflareErrorMessages.kt` turns API failures into UI text, including which token permission is missing.
+
+**Shared local storage (`localstore/`):**
+- `KeyValueStore`: an encrypted, device-only key-value store in DataStore file `local-store`. It's cleared on logout.
+- `ItemKey`: the single key format for anything that can carry a note or a lock (`ItemKey.dnsRecord`, `ItemKey.emailRule`, `ItemKey.emailAddress`).
+- `NoteRepository`: private notes per item. Notes are local only and don't need AuthGate.
+- `ItemLockManager`: the central lock for every feature.
+  - A locked item must not be edited or deleted.
+  - Locking needs no authentication. **Unlocking always goes through AuthGate.**
+  - `LockStatus.Managed` marks items Cloudflare itself protects (for example, Email Routing DNS records). Those can't be unlocked in the app.
+  - `RemoteLockSync` mirrors a lock to Cloudflare. DNS writes `LockMarker.TOKEN` (`[cfdm-locked]`) into the record's `comment`, so the lock syncs across devices and shows in the dashboard. On load, `adoptRemoteState()` makes Cloudflare the source of truth.
+
+**Conventions:** every screen has separate `<Screen>ViewModel.kt`, `<Screen>State.kt` and `<Screen>Intent.kt` files, and every change to Cloudflare data follows the Security Rules in §8a.
+
+---
+
 ## 5. Data Flow
 
 The data flow is unidirectional and predictable:

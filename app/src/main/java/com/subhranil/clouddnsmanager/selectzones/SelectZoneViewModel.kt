@@ -69,7 +69,7 @@ class SelectZoneViewModel(
 
     fun onAction(intent: SelectZoneIntent) {
         when (intent) {
-            is SelectZoneIntent.SelectZone -> selectZone(intent.zoneId)
+            is SelectZoneIntent.SelectZone -> selectZone(intent)
             is SelectZoneIntent.Retry -> loadZones()
             is SelectZoneIntent.RequestLogout -> _state.update { it.copy(showLogoutConfirmation = true) }
             is SelectZoneIntent.DismissLogout -> _state.update { it.copy(showLogoutConfirmation = false) }
@@ -78,9 +78,9 @@ class SelectZoneViewModel(
         }
     }
 
-    private fun selectZone(zoneId: String) {
+    private fun selectZone(intent: SelectZoneIntent.SelectZone) {
         Log.d("Select Zone Screen", "Pushing To Stack")
-        router.push(NavDestinations.DnsRecordsDestination(zoneId))
+        router.push(NavDestinations.ZoneHub(intent.zoneId, intent.zoneName, intent.accountId))
     }
 
     private fun logout() {

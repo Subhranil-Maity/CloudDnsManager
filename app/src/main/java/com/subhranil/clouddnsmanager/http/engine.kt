@@ -92,6 +92,34 @@ internal class CloudflareHttpClient(
         }
     }
 
+    // ── Writes ──────────────────────────────────────────────────────────────
+    // Feature API classes (dns/api, email/api) build on these instead of editing
+    // CloudflareClient, so each feature stays inside its own package.
+
+    /** POST a JSON [body] and unwrap the envelope's result. */
+    suspend inline fun <reified B, reified T> post(path: String, body: B): T {
+        @Suppress("UNCHECKED_CAST")
+        return executeEnvelope<T> { post(apiUrl(path)) { setBody(body) } }.result as T
+    }
+
+    /** PUT (full replace) a JSON [body] and unwrap the envelope's result. */
+    suspend inline fun <reified B, reified T> put(path: String, body: B): T {
+        @Suppress("UNCHECKED_CAST")
+        return executeEnvelope<T> { put(apiUrl(path)) { setBody(body) } }.result as T
+    }
+
+    /** PATCH (partial update) a JSON [body] and unwrap the envelope's result. */
+    suspend inline fun <reified B, reified T> patch(path: String, body: B): T {
+        @Suppress("UNCHECKED_CAST")
+        return executeEnvelope<T> { patch(apiUrl(path)) { setBody(body) } }.result as T
+    }
+
+    /** DELETE and unwrap the envelope's result (Cloudflare usually returns `{ "id": ... }`). */
+    suspend inline fun <reified T> delete(path: String): T {
+        @Suppress("UNCHECKED_CAST")
+        return executeEnvelope<T> { delete(apiUrl(path)) }.result as T
+    }
+
     /** Generic execute: wraps network + deserialisation errors, validates CF envelope. */
     suspend inline fun <reified T> executeEnvelope(
         crossinline block: suspend HttpClient.() -> HttpResponse,

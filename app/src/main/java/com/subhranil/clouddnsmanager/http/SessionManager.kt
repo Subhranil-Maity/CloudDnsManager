@@ -1,5 +1,6 @@
 package com.subhranil.clouddnsmanager.http
 
+import com.subhranil.clouddnsmanager.localstore.KeyValueStore
 import com.subhranil.clouddnsmanager.storage.TokenStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +12,10 @@ sealed interface SessionState {
     data class Authenticated(val client: CloudflareClient) : SessionState
 }
 
-class SessionManager(private val tokenStorage: TokenStorage) {
+class SessionManager(
+    private val tokenStorage: TokenStorage,
+    private val localStore: KeyValueStore,
+) {
 
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Loading)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
@@ -67,6 +71,7 @@ class SessionManager(private val tokenStorage: TokenStorage) {
             currentState.client.close() // Closes HTTP client engines cleanly
         }
         tokenStorage.clearAll() // also removes the app PIN / biometric settings
+        localStore.clear()      // local notes and locks belong to this login
         _sessionState.value = SessionState.Unauthenticated
     }
 }

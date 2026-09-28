@@ -16,7 +16,11 @@ import androidx.savedstate.serialization.SavedStateConfiguration
 import com.subhranil.clouddnsmanager.onboading.OnBoardingScreen
 import com.subhranil.clouddnsmanager.selectzones.SelectZoneScreen
 import com.subhranil.clouddnsmanager.start.StartScreen
-import com.subhranil.clouddnsmanager.dns.DnsRecordScreen
+import com.subhranil.clouddnsmanager.dns.nav.dnsEntry
+import com.subhranil.clouddnsmanager.dns.nav.registerDnsDestinations
+import com.subhranil.clouddnsmanager.email.nav.emailEntry
+import com.subhranil.clouddnsmanager.email.nav.registerEmailDestinations
+import com.subhranil.clouddnsmanager.zone.ZoneHubScreen
 import com.subhranil.clouddnsmanager.security.settings.SecuritySettingsScreen
 import com.subhranil.clouddnsmanager.security.setup.PinSetupScreen
 import kotlinx.serialization.modules.SerializersModule
@@ -43,8 +47,8 @@ fun RootNavigation(
                         NavDestinations.SelectZonesDestination.serializer()
                     )
                     subclass(
-                        NavDestinations.DnsRecordsDestination::class,
-                        NavDestinations.DnsRecordsDestination.serializer()
+                        NavDestinations.ZoneHub::class,
+                        NavDestinations.ZoneHub.serializer()
                     )
                     subclass(
                         NavDestinations.OnBoarding::class,
@@ -58,6 +62,9 @@ fun RootNavigation(
                         NavDestinations.PinSetup::class,
                         NavDestinations.PinSetup.serializer()
                     )
+                    // Feature packages register their own destinations
+                    registerDnsDestinations()
+                    registerEmailDestinations()
                 }
             }
         },
@@ -85,10 +92,12 @@ fun RootNavigation(
                 is NavDestinations.StartScreenDestination -> NavEntry(key) { StartScreen() }
                 is NavDestinations.OnBoarding -> NavEntry(key) { OnBoardingScreen() }
                 is NavDestinations.SelectZonesDestination -> NavEntry(key) { SelectZoneScreen() }
-                is NavDestinations.DnsRecordsDestination -> NavEntry(key) { DnsRecordScreen(zoneId = key.zoneId) }
+                is NavDestinations.ZoneHub -> NavEntry(key) { ZoneHubScreen(destination = key) }
                 is NavDestinations.SecuritySettings -> NavEntry(key) { SecuritySettingsScreen() }
                 is NavDestinations.PinSetup -> NavEntry(key) { PinSetupScreen(changing = key.changing) }
-                else -> error("Unsupported navigation destination: $key")
+                else -> dnsEntry(key)
+                    ?: emailEntry(key)
+                    ?: error("Unsupported navigation destination: $key")
             }
         }
     )

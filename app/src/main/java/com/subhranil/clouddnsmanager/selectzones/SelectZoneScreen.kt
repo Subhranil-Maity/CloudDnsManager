@@ -106,7 +106,7 @@ fun SelectZoneScreen(
             ZonesScreen(
                 zones = dataState.zones,
                 onZoneClick = { zone ->
-                    viewModel.onAction(SelectZoneIntent.SelectZone(zone.id))
+                    viewModel.onAction(SelectZoneIntent.SelectZone(zone.id, zone.name, zone.account.id))
                 },
                 onLogout = { viewModel.onAction(SelectZoneIntent.RequestLogout) },
                 onOpenSecurity = { viewModel.onAction(SelectZoneIntent.OpenSecurity) },

@@ -13,27 +13,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class SecuritySettingsState(
-    val isPinSet: Boolean = false,
-    val biometricsEnabled: Boolean = false,
-    val biometricsAvailable: Boolean = false,
-    val showRemovePinConfirmation: Boolean = false,
-    val message: String? = null,
-)
-
-sealed interface SecuritySettingsIntent {
-    data object Back : SecuritySettingsIntent
-    data object SetPin : SecuritySettingsIntent
-    data object ChangePin : SecuritySettingsIntent
-    data object RemovePin : SecuritySettingsIntent
-    data object ConfirmRemovePin : SecuritySettingsIntent
-    data object DismissRemovePin : SecuritySettingsIntent
-    /** Sent by the screen after a successful biometric prompt. */
-    data object EnableBiometricsVerified : SecuritySettingsIntent
-    data object DisableBiometrics : SecuritySettingsIntent
-    data object MessageShown : SecuritySettingsIntent
-}
-
 class SecuritySettingsViewModel(
     private val router: NavigationRouter,
     private val repository: AppLockRepository,

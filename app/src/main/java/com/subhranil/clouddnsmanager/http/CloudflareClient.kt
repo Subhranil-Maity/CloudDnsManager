@@ -41,7 +41,11 @@ class CloudflareClient(
     httpClientOverride: HttpClient? = null,
 ) : AutoCloseable {
 
-    private val engine = CloudflareHttpClient(token, logLevel, httpClientOverride)
+    /**
+     * Shared HTTP engine. Internal so feature API classes (e.g. `dns/api/DnsApi`,
+     * `email/api/EmailRoutingApi`) can build on it without growing this class.
+     */
+    internal val engine = CloudflareHttpClient(token, logLevel, httpClientOverride)
 
     // ──────────────────────────────────────────
     // Token & Permissions
