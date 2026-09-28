@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,14 +18,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.subhranil.clouddnsmanager.models.dns.DnsRecord
+import com.subhranil.clouddnsmanager.dns.DnsRecordItem
+import com.subhranil.clouddnsmanager.localstore.lock.LockStatus
 import com.subhranil.clouddnsmanager.models.dns.DnsRecordType
+
+/** Cloudflare's orange, used for "Proxied" and for records Cloudflare itself locks. */
+internal val CloudflareOrange = Color(0xFFF47B20)
 
 @Composable
 fun DnsRecordRow(
-    record: DnsRecord,
+    item: DnsRecordItem,
     modifier: Modifier = Modifier
 ) {
+    val record = item.record
     // Elegant Muted Badges for Dev-centric UI
     val (badgeBg, badgeText) = when (record.type) {
         DnsRecordType.A, DnsRecordType.AAAA -> Color(0xFFE8F0FE) to Color(0xFF1A73E8)
@@ -59,17 +67,21 @@ fun DnsRecordRow(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Column 2: Name & Content (Core details Stacked)
+            // Column 2: Name & Content (Core details Stacked), with lock / note indicators
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = record.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    RecordIndicators(item)
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (record.type == DnsRecordType.MX && record.priority != null) {
@@ -91,7 +103,7 @@ fun DnsRecordRow(
 
             // Column 3: Proxy Status Indicator
             if (record.proxiable) {
-                val proxyColor = if (record.proxied) Color(0xFFF47B20) else Color(0xFF9CA3AF) // Cloudflare Orange vs Grey
+                val proxyColor = if (record.proxied) CloudflareOrange else Color(0xFF9CA3AF) // Cloudflare Orange vs Grey
                 val proxyLabel = if (record.proxied) "Proxied" else "DNS Only"
 
                 Row(
@@ -119,5 +131,33 @@ fun DnsRecordRow(
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    }
+}
+
+/** Small icons after the name: a lock (orange when Cloudflare locks it) and a note marker. */
+@Composable
+private fun RecordIndicators(item: DnsRecordItem) {
+    val lockTint = when (item.lockStatus) {
+        is LockStatus.Managed -> CloudflareOrange
+        LockStatus.UserLocked -> MaterialTheme.colorScheme.primary
+        LockStatus.Unlocked -> null
+    }
+    if (lockTint != null) {
+        Spacer(Modifier.width(6.dp))
+        Icon(
+            imageVector = Icons.Filled.Lock,
+            contentDescription = if (item.lockStatus is LockStatus.Managed) "Locked by Cloudflare" else "Locked",
+            tint = lockTint,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+    if (item.hasNote) {
+        Spacer(Modifier.width(6.dp))
+        Icon(
+            imageVector = Icons.Filled.Create,
+            contentDescription = "Has a private note",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp)
+        )
     }
 }

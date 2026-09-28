@@ -17,6 +17,11 @@ data class DnsRecord(
     val locked: Boolean = false,
     val priority: Int? = null,        // MX / SRV / URI
     val data: DnsRecordData? = null,  // SRV / LOC / CAA / etc.
+    /** Cloudflare's own comment field (max 100 chars on the free plan). May carry the lock marker. */
+    val comment: String? = null,
+    val tags: List<String> = emptyList(),
+    /** Read-only flags Cloudflare sets; see [DnsRecordMeta]. */
+    val meta: DnsRecordMeta = DnsRecordMeta(),
     @SerialName("created_on") val createdOn: String? = null,
     @SerialName("modified_on") val modifiedOn: String? = null,
 )

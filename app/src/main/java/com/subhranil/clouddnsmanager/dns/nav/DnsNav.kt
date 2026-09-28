@@ -3,6 +3,7 @@ package com.subhranil.clouddnsmanager.dns.nav
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import com.subhranil.clouddnsmanager.dns.DnsRecordScreen
+import com.subhranil.clouddnsmanager.dns.edit.DnsRecordEditorScreen
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.modules.PolymorphicModuleBuilder
 
@@ -14,15 +15,27 @@ import kotlinx.serialization.modules.PolymorphicModuleBuilder
 sealed interface DnsDestination : NavKey {
     @Serializable
     data class Records(val zoneId: String) : DnsDestination
+
+    /**
+     * Full-screen create / edit form.
+     *
+     * @param zoneName used to turn "@" and relative names into complete names; looked up
+     *   from Cloudflare when null.
+     * @param recordId null creates a new record.
+     */
+    @Serializable
+    data class Editor(val zoneId: String, val zoneName: String?, val recordId: String?) : DnsDestination
 }
 
 /** Called from RootNavigation's SerializersModule so the back stack can be saved. */
 fun PolymorphicModuleBuilder<NavKey>.registerDnsDestinations() {
     subclass(DnsDestination.Records::class, DnsDestination.Records.serializer())
+    subclass(DnsDestination.Editor::class, DnsDestination.Editor.serializer())
 }
 
 /** Called from RootNavigation's entryProvider; returns null for keys this feature doesn't own. */
 fun dnsEntry(key: NavKey): NavEntry<NavKey>? = when (key) {
     is DnsDestination.Records -> NavEntry(key) { DnsRecordScreen(zoneId = key.zoneId) }
+    is DnsDestination.Editor -> NavEntry(key) { DnsRecordEditorScreen(destination = key) }
     else -> null
 }

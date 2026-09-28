@@ -5,38 +5,48 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.subhranil.clouddnsmanager.models.dns.DnsRecord
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
+import com.subhranil.clouddnsmanager.dns.DnsRecordItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DnsRecordsScreen(
-    dnsRecords: List<DnsRecord>,
+    dnsRecords: List<DnsRecordItem>,
     isLoading: Boolean, // Control system state
     modifier: Modifier = Modifier,
-    drawer: DnsRecord?,
-    onDrawerDismiss: () -> Unit,
-    onSelectDrawer: (DnsRecord) -> Unit
+    refreshing: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onSelectRecord: (DnsRecordItem) -> Unit,
+    onAddRecord: () -> Unit,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    // Saveable so the query survives going to the editor and back
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val smoothRadius = RoundedCornerShape(8.dp)
     val primaryColor = MaterialTheme.colorScheme.primary
 
     val filteredRecords = remember(searchQuery, dnsRecords) {
         dnsRecords.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                    it.type.name.contains(searchQuery, ignoreCase = true) ||
-                    it.content.contains(searchQuery, ignoreCase = true)
+            it.record.name.contains(searchQuery, ignoreCase = true) ||
+                    it.record.type.name.contains(searchQuery, ignoreCase = true) ||
+                    it.record.content.contains(searchQuery, ignoreCase = true) ||
+                    it.comment?.contains(searchQuery, ignoreCase = true) == true ||
+                    it.note?.contains(searchQuery, ignoreCase = true) == true
         }
     }
 
@@ -46,9 +56,29 @@ fun DnsRecordsScreen(
                 title = {
                     Text("DNS Records", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onRefresh, enabled = !isLoading && !refreshing) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh records")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
+        floatingActionButton = {
+            if (!isLoading) {
+                ExtendedFloatingActionButton(
+                    onClick = onAddRecord,
+                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    text = { Text("Add record") }
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(
@@ -76,7 +106,13 @@ fun DnsRecordsScreen(
                     .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Background reload after a change: keep the list, show a thin bar
+            if (refreshing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Smooth cross-fade animation when moving out of loading states
 
@@ -92,7 +128,8 @@ fun DnsRecordsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No records found.",
+                            text = if (searchQuery.isBlank()) "No records yet. Tap \"Add record\" to create one."
+                            else "No records found.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -100,21 +137,16 @@ fun DnsRecordsScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp)
+                        // Room at the bottom so the FAB never covers the last row
+                        contentPadding = PaddingValues(bottom = 96.dp)
                     ) {
-                        items(items = filteredRecords, key = { it.id }) { record ->
-                            DnsRecordRow(record = record, Modifier.clickable{
-                                onSelectDrawer(record)
+                        items(items = filteredRecords, key = { it.record.id }) { item ->
+                            DnsRecordRow(item = item, Modifier.clickable {
+                                onSelectRecord(item)
                             })
                         }
                     }
                 }
-            }
-            if (drawer != null) {
-                DnsRecordDetailDrawer(
-                    record = drawer,
-                    onDismiss = onDrawerDismiss
-                )
             }
         }
     }
