@@ -1,29 +1,40 @@
-# CloudDnsManager (View only For Now)
+# CloudDnsManager
 
-An Android app for managing your Cloudflare DNS infrastructure on the go.
+An Android app for managing your Cloudflare DNS records and Email Routing on the go.
+
+**[Download the latest release](https://github.com/Subhranil-Maity/CloudDnsManager/releases/latest)** · [Changelog](CHANGELOG.md)
 
 ---
 
 ## What is this?
 
-I built CloudDnsManager because I wanted a fast, native way to browse my Cloudflare zones and DNS records from my phone. The Cloudflare web dashboard works fine on desktop, but on mobile it is clunky and slow. I wanted something that felt like a real Android app — clean, responsive, and built for touch.
+I built CloudDnsManager because I wanted a fast, native way to manage my Cloudflare zones from my phone. The Cloudflare web dashboard works fine on desktop, but on mobile it is clunky and slow. I wanted something that felt like a real Android app — clean, responsive, and built for touch.
 
-Right now it's **view-only**, meaning you can browse and inspect your zones and DNS records. I have plans to add editing in the future, but the read-only experience is already useful for quickly checking record values, TTLs, and proxied status while away from my desk.
-
-**"View only For Now"** — because full CRUD operations for DNS management are on the roadmap.
+It started as a view-only browser. As of **v1.0** you can create, edit and delete DNS records, manage Email Routing aliases and forwarding addresses, and see who has been emailing your aliases. Because it can now change things, every change is protected by a confirmation and your PIN or biometrics.
 
 ---
 
 ## Features
 
-- **API Token Verification** — Enter your Cloudflare API token; the app verifies it against Cloudflare's API before proceeding
-- **Session Management** — Token is encrypted at-rest and kept alive for the app session
-- **Zone Browsing** — View all zones (domains) associated with your account, with live status and plan info
-- **DNS Record Inspection** — Browse all DNS records for a selected zone
-- **Search & Filter** — Quickly find records by name, type, or content
-- **Record Detail View** — Tap any record to see full details in a bottom sheet
-- **Error Recovery** — Network errors show a dedicated retry screen instead of a cryptic dialog
-- **Pure State Machine UI** — Every screen is a pure function of its state. No surprises.
+### DNS
+- **Browse and search** every record in a zone, by name, type, content, comment or note
+- **Create, edit and delete** A, AAAA, CNAME, TXT, MX, NS, CAA and SRV records, with a form tailored to each type (TTL, proxied, priority, SRV/CAA fields, comment)
+- **Locked by Cloudflare:** records Cloudflare manages itself, such as Email Routing records, are clearly marked and protected
+- **Your own locks:** lock a record so it can't be edited or deleted by mistake. The lock is synced to Cloudflare through the record's comment, so it follows you across devices
+- **Private notes** on any record, stored only on your device
+
+### Email Routing
+- **Aliases:** list, search, enable or disable, change where they forward, delete
+- **Random aliases** like `quiet-river-4821@yourdomain.com`, one tap to generate
+- **Destination addresses:** see verified and pending addresses, and add new ones (Cloudflare sends a verification email)
+- **Activity:** incoming mail per zone or per alias (from, to, subject, status)
+- **Copy buttons**, plus private notes and locks for aliases and addresses
+
+### Security
+- **Optional app PIN with biometric unlock.** The app locks on launch and after a minute in the background, with a cooldown after repeated wrong PINs
+- **Every change needs authentication:** PIN or biometrics, or your phone's screen lock if you haven't set an app PIN
+- **Encrypted storage:** the API token is encrypted at rest with an Android Keystore key, and only a salted hash of the PIN is stored
+- While a PIN is set, the app is hidden from screenshots and the recent-apps preview
 
 ---
 
@@ -36,6 +47,45 @@ Right now it's **view-only**, meaning you can browse and inspect your zones and 
 
 ---
 
+## Installation
+
+1. Download `CloudDnsManager-v1.0.apk` from the [latest release](https://github.com/Subhranil-Maity/CloudDnsManager/releases/latest).
+2. Open it on your phone and allow installing from this source if Android asks.
+3. Requires **Android 12 (API 31)** or newer. Upgrading from v0.1 keeps your saved token.
+
+---
+
+## API token permissions
+
+Create a token in the Cloudflare dashboard (**My Profile → API Tokens → Create Token → Custom token**) and grant what you need:
+
+| Scope | Permission | Needed for |
+|---|---|---|
+| Zone | Zone: Read | Listing zones (required) |
+| Zone | DNS: Edit | Viewing and changing DNS records (DNS: Read is enough to only view) |
+| Zone | Email Routing Rules: Edit | Viewing and changing email aliases |
+| Account | Email Routing Addresses: Edit | Destination (forwarding) addresses |
+| Zone | Analytics: Read | Email activity |
+| Zone | Zone Settings: Read | *(optional)* Showing whether Email Routing is switched on |
+
+- Under **Zone Resources**, include the zones you want to manage.
+- Under **Account Resources**, include every account whose forwarding addresses you want to manage. Addresses belong to an account, not a zone.
+
+If something isn't allowed, the app tells you which permission is likely missing, along with Cloudflare's own reason.
+
+---
+
+## Usage
+
+1. **First launch:** paste your Cloudflare API token. The app verifies it before continuing.
+2. **Pick a zone**, then choose **DNS** or **Email**.
+3. **DNS:** tap a record for details, its note and its lock. Use **Add record** to create one, or **Edit** / **Delete** from the details.
+4. **Email:** switch between the **Aliases**, **Addresses** and **Activity** tabs. Use **Generate random** when creating an alias.
+5. **Security:** tap the lock icon on the zones screen to set a PIN and turn on biometric unlock.
+6. **Log out** from the zones screen. This removes the token, PIN, notes and locks from the device.
+
+---
+
 ## Technology Stack
 
 I chose a modern Android stack that keeps the codebase lean and maintainable:
@@ -43,21 +93,22 @@ I chose a modern Android stack that keeps the codebase lean and maintainable:
 | Layer | Technology |
 |-------|-----------|
 | UI | Jetpack Compose + Material 3 |
-| Architecture | MVVM with MVI-style Intents |
+| Architecture | MVVM with MVI-style Intents (separate State / Intent / ViewModel per screen) |
 | DI | Koin |
-| Networking | Ktor (CIO engine) |
+| Networking | Ktor (CIO engine), Cloudflare REST v4 + GraphQL Analytics |
 | Serialization | Kotlinx Serialization |
 | Navigation | AndroidX Navigation 3 |
-| Storage | DataStore (encrypted) |
-| Encryption | AES + Base64 |
+| Storage | DataStore (encrypted with an Android Keystore AES key) |
+| Security | AndroidX Biometric, PBKDF2 PIN hashing |
+| Startup | AndroidX SplashScreen |
 
 ---
 
-## Getting Started
+## Getting Started (building from source)
 
 ### Prerequisites
 
-- Android Studio Hedgehog (2023.1.1) or newer
+- A recent Android Studio
 - JDK 17+
 - Android SDK 31+ (minSdk), compiled against SDK 37
 
@@ -70,20 +121,8 @@ I chose a modern Android stack that keeps the codebase lean and maintainable:
 
 ```bash
 ./gradlew :app:installDebug
+./gradlew :app:testDebugUnitTest   # unit tests
 ```
-
----
-
-## Usage
-
-1. **On First Launch**: The app shows the Onboarding screen
-2. **Enter API Token**: Paste your Cloudflare API token (requires Zone:Read permissions)
-3. **Verify**: The app validates your token against Cloudflare
-4. **Browse Zones**: You will see all zones your token can access
-5. **Inspect Records**: Tap a zone to see its DNS records
-6. **Search**: Use the search bar to filter records by name, type, or content
-7. **View Details**: Tap any record to see full details (TTL, proxied status, etc.)
-8. **Go Back**: Use the system back button or the retry screen to navigate
 
 ---
 
@@ -91,21 +130,15 @@ I chose a modern Android stack that keeps the codebase lean and maintainable:
 
 I followed a **pure state machine** approach for the frontend. Every screen is driven by:
 
-1. **State**: A sealed interface with distinct substates for every possible screen condition (Loading, Error, Data)
-2. **Intent**: A sealed class representing every possible user action
-3. **ViewModel**: Processes intents, performs side effects, and transitions between states
+1. **State**: an immutable state with sealed substates for every screen condition (Loading, Error, Data)
+2. **Intent**: a sealed interface representing every possible user action
+3. **ViewModel**: processes intents, performs side effects, and transitions between states
 
-This means the Compose UI is a pure function of state — easy to test, reason about, and debug. The app uses an exhaustive `when` block on the sealed state, so every UI state is intentional and no impossible states can be rendered.
+This means the Compose UI is a pure function of state — easy to test, reason about, and debug.
 
-The foundation is solid, and adding write operations is the natural next step now that the architecture is proven.
+DNS and Email are **self-contained feature packages**, each with its own navigation, dependency injection and API class. They share an encrypted local store, one central lock manager, and an `AuthGate` that every change must pass through.
 
-For the full technical breakdown, see [architecture.md](architecture.md).
-
----
-
-## Why "View only For Now"?
-
-I wanted to ship something useful before building the full CRUD. The read-only mode is genuinely handy for quick lookups — checking if a CNAME points where you think it does, verifying a zone is using the right nameservers, confirming a TTL value. The foundation is solid, and adding write operations is the natural next step now that the architecture is proven.
+For the full technical breakdown, including the security rules, see [architecture.md](architecture.md).
 
 ---
 
@@ -113,4 +146,4 @@ I wanted to ship something useful before building the full CRUD. The read-only m
 
 Built by **Subhranil Maity**.
 
-I work on this in my free time. If you find it useful, let me know. If you want to contribute (especially on the CRUD features), PRs are welcome.
+I work on this in my free time. If you find it useful, let me know. If you want to contribute, PRs are welcome.
