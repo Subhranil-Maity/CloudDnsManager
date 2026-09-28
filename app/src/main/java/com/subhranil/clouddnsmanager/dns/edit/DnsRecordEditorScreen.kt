@@ -74,6 +74,17 @@ fun DnsRecordEditorScreen(
 
     BackHandler { onAction(DnsRecordEditorIntent.Back) }
 
+    DnsRecordEditorContent(state = state, onAction = onAction, modifier = modifier)
+}
+
+/** Stateless editor (also used by previews). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DnsRecordEditorContent(
+    state: DnsRecordEditorState,
+    onAction: (DnsRecordEditorIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {

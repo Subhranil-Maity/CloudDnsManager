@@ -45,6 +45,41 @@ fun DnsRecordDetailDrawer(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        modifier = modifier
+    ) {
+        DnsRecordDetailContent(
+            item = item,
+            noteDraft = noteDraft,
+            working = working,
+            message = message,
+            onNoteChange = onNoteChange,
+            onSaveNote = onSaveNote,
+            onToggleLock = onToggleLock,
+            onEdit = onEdit,
+            onDelete = onDelete,
+        )
+    }
+}
+
+/** Body of the details sheet, without the sheet itself (so it can be previewed). */
+@Composable
+fun DnsRecordDetailContent(
+    item: DnsRecordItem,
+    noteDraft: String,
+    working: Boolean,
+    message: String?,
+    onNoteChange: (String) -> Unit,
+    onSaveNote: () -> Unit,
+    onToggleLock: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val record = item.record
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -54,149 +89,141 @@ fun DnsRecordDetailDrawer(
         Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    Column(
         modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 40.dp)
+            .imePadding()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 40.dp)
-                .imePadding()
+        // --- Header ---
+        Text(
+            text = "Record Details",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        LockBanner(item.lockStatus)
+        if (!item.typeEditable) {
+            Banner(
+                icon = Icons.Filled.Info,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                title = "Read-only in this app",
+                body = "${record.type.name} records can't be edited here yet. Use the Cloudflare dashboard to change them.",
+            )
+        }
+
+        // --- Grid Metadata Rows ---
+        DetailRowItem(label = "Type", value = record.type.name, isMonospace = true)
+
+        DetailRowItem(
+            label = "Name / Host",
+            value = record.name,
+            isMonospace = true,
+            onCopy = { copyToClipboard(record.name, "Name") }
+        )
+
+        DetailRowItem(
+            label = "Content / Value",
+            value = record.content,
+            isMonospace = true,
+            onCopy = { copyToClipboard(record.content, "Value") }
+        )
+
+        DetailRowItem(
+            label = "TTL",
+            value = if (record.ttl == 1) "Auto (Default)" else "${ttlLabel(record.ttl)} (${record.ttl} seconds)"
+        )
+
+        if (record.proxiable) {
+            DetailRowItem(
+                label = "Routing Status",
+                value = if (record.proxied) "Proxied through Cloudflare" else "Bypassed (DNS Only)"
+            )
+        }
+
+        if (record.priority != null) {
+            DetailRowItem(label = "Priority", value = record.priority.toString())
+        }
+
+        DetailRowItem(
+            label = "Cloudflare comment (visible in the dashboard)",
+            value = item.comment ?: "None"
+        )
+
+        // --- Private note: local only, clearly separate from Cloudflare's comment ---
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Private note", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Stored only on this device. It's never sent to Cloudflare.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = noteDraft,
+            onValueChange = onNoteChange,
+            placeholder = { Text("e.g. Points at the office VPN, ask Sam before changing") },
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth()
+        )
+        val noteChanged = noteDraft.trim() != item.note.orEmpty()
+        TextButton(
+            onClick = onSaveNote,
+            enabled = noteChanged,
+            modifier = Modifier.align(Alignment.End)
         ) {
-            // --- Header ---
+            Text(if (noteDraft.isBlank() && item.hasNote) "Remove note" else "Save note")
+        }
+
+        // --- Actions ---
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        Spacer(modifier = Modifier.height(12.dp))
+        val editable = item.lockStatus == LockStatus.Unlocked
+        if (working) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        if (message != null) {
             Text(
-                text = "Record Details",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-
-            LockBanner(item.lockStatus)
-            if (!item.typeEditable) {
-                Banner(
-                    icon = Icons.Filled.Info,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    title = "Read-only in this app",
-                    body = "${record.type.name} records can't be edited here yet. Use the Cloudflare dashboard to change them.",
-                )
-            }
-
-            // --- Grid Metadata Rows ---
-            DetailRowItem(label = "Type", value = record.type.name, isMonospace = true)
-
-            DetailRowItem(
-                label = "Name / Host",
-                value = record.name,
-                isMonospace = true,
-                onCopy = { copyToClipboard(record.name, "Name") }
-            )
-
-            DetailRowItem(
-                label = "Content / Value",
-                value = record.content,
-                isMonospace = true,
-                onCopy = { copyToClipboard(record.content, "Value") }
-            )
-
-            DetailRowItem(
-                label = "TTL",
-                value = if (record.ttl == 1) "Auto (Default)" else "${ttlLabel(record.ttl)} (${record.ttl} seconds)"
-            )
-
-            if (record.proxiable) {
-                DetailRowItem(
-                    label = "Routing Status",
-                    value = if (record.proxied) "Proxied through Cloudflare" else "Bypassed (DNS Only)"
-                )
-            }
-
-            if (record.priority != null) {
-                DetailRowItem(label = "Priority", value = record.priority.toString())
-            }
-
-            DetailRowItem(
-                label = "Cloudflare comment (visible in the dashboard)",
-                value = item.comment ?: "None"
-            )
-
-            // --- Private note: local only, clearly separate from Cloudflare's comment ---
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Private note", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(
-                text = "Stored only on this device. It's never sent to Cloudflare.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = noteDraft,
-                onValueChange = onNoteChange,
-                placeholder = { Text("e.g. Points at the office VPN, ask Sam before changing") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth()
-            )
-            val noteChanged = noteDraft.trim() != item.note.orEmpty()
-            TextButton(
-                onClick = onSaveNote,
-                enabled = noteChanged,
-                modifier = Modifier.align(Alignment.End)
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedButton(
+                onClick = onToggleLock,
+                enabled = !working && item.lockStatus !is LockStatus.Managed,
+                modifier = Modifier.weight(1f)
             ) {
-                Text(if (noteDraft.isBlank() && item.hasNote) "Remove note" else "Save note")
+                Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(if (item.lockStatus == LockStatus.UserLocked) "Unlock" else "Lock")
             }
-
-            // --- Actions ---
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            Spacer(modifier = Modifier.height(12.dp))
-            val editable = item.lockStatus == LockStatus.Unlocked
-            if (working) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-            if (message != null) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            OutlinedButton(
+                onClick = onEdit,
+                enabled = !working && editable && item.typeEditable,
+                modifier = Modifier.weight(1f)
             ) {
-                OutlinedButton(
-                    onClick = onToggleLock,
-                    enabled = !working && item.lockStatus !is LockStatus.Managed,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (item.lockStatus == LockStatus.UserLocked) "Unlock" else "Lock")
-                }
-                OutlinedButton(
-                    onClick = onEdit,
-                    enabled = !working && editable && item.typeEditable,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Edit")
-                }
-                OutlinedButton(
-                    onClick = onDelete,
-                    enabled = !working && editable,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Delete")
-                }
+                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Edit")
+            }
+            OutlinedButton(
+                onClick = onDelete,
+                enabled = !working && editable,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Delete")
             }
         }
     }

@@ -63,16 +63,27 @@ fun AliasListSection(
     val snackbarHostState = remember { SnackbarHostState() }
     MessageEffect(state.message, snackbarHostState) { viewModel.onAction(AliasListIntent.MessageShown) }
 
+    AliasListContent(state = state, onAction = viewModel::onAction, modifier = modifier, snackbarHostState = snackbarHostState)
+}
+
+/** Stateless Aliases tab (also used by previews). */
+@Composable
+fun AliasListContent(
+    state: AliasListState,
+    onAction: (AliasListIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
     Box(modifier = modifier.fillMaxSize()) {
         when (val data = state.dataState) {
             AliasListDataState.Loading -> EmailLoading()
-            is AliasListDataState.Error -> EmailError(data.message, onRetry = { viewModel.onAction(AliasListIntent.Retry) })
+            is AliasListDataState.Error -> EmailError(data.message, onRetry = { onAction(AliasListIntent.Retry) })
             is AliasListDataState.Loaded -> if (data.aliases.isEmpty() && data.catchAll == null) {
                 EmailEmpty(
                     title = "No aliases yet",
                     body = "An alias is an address at ${state.zoneName} that forwards mail to one of your inboxes.",
                     actionLabel = "Create alias",
-                    onAction = { viewModel.onAction(AliasListIntent.Create) },
+                    onAction = { onAction(AliasListIntent.Create) },
                 )
             } else {
                 LazyColumn(
@@ -82,14 +93,14 @@ fun AliasListSection(
                     item {
                         OutlinedTextField(
                             value = state.query,
-                            onValueChange = { viewModel.onAction(AliasListIntent.Search(it)) },
+                            onValueChange = { onAction(AliasListIntent.Search(it)) },
                             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                             singleLine = true,
                             placeholder = { Text("Search aliases") },
                             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                             trailingIcon = {
                                 if (state.query.isNotEmpty()) {
-                                    IconButton(onClick = { viewModel.onAction(AliasListIntent.Search("")) }) {
+                                    IconButton(onClick = { onAction(AliasListIntent.Search("")) }) {
                                         Icon(Icons.Filled.Clear, contentDescription = "Clear search")
                                     }
                                 }
@@ -117,8 +128,8 @@ fun AliasListSection(
                             locked = ruleId in state.lockedRuleIds,
                             hasNote = ruleId in state.notedRuleIds,
                             busy = ruleId in state.busyRuleIds,
-                            onClick = { viewModel.onAction(AliasListIntent.Open(ruleId)) },
-                            onEnabledChange = { viewModel.onAction(AliasListIntent.SetEnabled(ruleId, it)) },
+                            onClick = { onAction(AliasListIntent.Open(ruleId)) },
+                            onEnabledChange = { onAction(AliasListIntent.SetEnabled(ruleId, it)) },
                         )
                     }
                 }
@@ -127,7 +138,7 @@ fun AliasListSection(
 
         if (state.dataState is AliasListDataState.Loaded) {
             ExtendedFloatingActionButton(
-                onClick = { viewModel.onAction(AliasListIntent.Create) },
+                onClick = { onAction(AliasListIntent.Create) },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("New alias") },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),

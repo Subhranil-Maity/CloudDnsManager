@@ -48,7 +48,6 @@ fun LockScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val activity = rememberFragmentActivity()
     val scope = rememberCoroutineScope()
-    val secondsLeft = rememberLockoutSecondsLeft(state.lockedOutUntilMs)
     val canUseBiometrics = state.biometricsEnabled && biometrics.canUseBiometrics()
 
     fun promptBiometrics() {
@@ -90,6 +89,28 @@ fun LockScreen(
         )
     }
 
+    LockScreenContent(
+        state = state,
+        onAction = viewModel::onAction,
+        canUseBiometrics = canUseBiometrics,
+        onUseBiometrics = ::promptBiometrics,
+        modifier = modifier,
+    )
+}
+
+/**
+ * Stateless lock screen (also used by previews). The biometric prompt needs the hosting
+ * Activity, so it stays in [LockScreen] and arrives here as [onUseBiometrics].
+ */
+@Composable
+fun LockScreenContent(
+    state: LockScreenState,
+    onAction: (LockScreenIntent) -> Unit,
+    canUseBiometrics: Boolean,
+    onUseBiometrics: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val secondsLeft = rememberLockoutSecondsLeft(state.lockedOutUntilMs)
     // An opaque Surface also swallows touches meant for the content below
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -122,7 +143,7 @@ fun LockScreen(
 
             PinInputField(
                 value = state.pin,
-                onValueChange = { viewModel.onAction(LockScreenIntent.UpdatePin(it)) },
+                onValueChange = { onAction(LockScreenIntent.UpdatePin(it)) },
                 enabled = secondsLeft == 0L && !state.verifying,
                 isError = state.error != null,
                 autoFocus = !canUseBiometrics,
@@ -141,11 +162,11 @@ fun LockScreen(
 
             if (canUseBiometrics) {
                 Spacer(Modifier.height(24.dp))
-                OutlinedButton(onClick = ::promptBiometrics) { Text("Use biometrics") }
+                OutlinedButton(onClick = onUseBiometrics) { Text("Use biometrics") }
             }
 
             Spacer(Modifier.height(16.dp))
-            TextButton(onClick = { viewModel.onAction(LockScreenIntent.ForgotPin) }) {
+            TextButton(onClick = { onAction(LockScreenIntent.ForgotPin) }) {
                 Text("Forgot PIN? Log out")
             }
         }

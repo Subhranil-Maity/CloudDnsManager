@@ -131,6 +131,17 @@ fun AddressesSection(
         )
     }
 
+    AddressListContent(state = state, onAction = onAction, modifier = modifier, snackbarHostState = snackbarHostState)
+}
+
+/** Stateless Addresses tab (also used by previews). Dialogs and the detail sheet stay in [AddressesSection]. */
+@Composable
+fun AddressListContent(
+    state: AddressListState,
+    onAction: (AddressListIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
     Box(modifier = modifier.fillMaxSize()) {
         when (val data = state.dataState) {
             AddressListDataState.Loading -> EmailLoading()

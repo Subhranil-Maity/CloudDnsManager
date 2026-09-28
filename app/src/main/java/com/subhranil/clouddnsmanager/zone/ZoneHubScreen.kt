@@ -46,13 +46,24 @@ fun ZoneHubScreen(
 
     BackHandler { viewModel.onAction(ZoneHubIntent.Back) }
 
+    ZoneHubContent(state = state, onAction = viewModel::onAction, modifier = modifier)
+}
+
+/** Stateless zone page (also used by previews). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ZoneHubContent(
+    state: ZoneHubState,
+    onAction: (ZoneHubIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(state.zoneName, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(ZoneHubIntent.Back) }) {
+                    IconButton(onClick = { onAction(ZoneHubIntent.Back) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -70,13 +81,13 @@ fun ZoneHubScreen(
                 icon = Icons.AutoMirrored.Filled.List,
                 title = "DNS",
                 subtitle = "View and manage DNS records",
-                onClick = { viewModel.onAction(ZoneHubIntent.OpenDns) },
+                onClick = { onAction(ZoneHubIntent.OpenDns) },
             )
             ZoneFeatureCard(
                 icon = Icons.Filled.Email,
                 title = "Email",
                 subtitle = "Email aliases, forwarding addresses and activity",
-                onClick = { viewModel.onAction(ZoneHubIntent.OpenEmail) },
+                onClick = { onAction(ZoneHubIntent.OpenEmail) },
             )
         }
     }

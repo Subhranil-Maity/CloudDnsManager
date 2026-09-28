@@ -42,10 +42,21 @@ fun PinSetupScreen(
     viewModel: PinSetupViewModel = koinViewModel { parametersOf(changing) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val confirming = state.step == PinSetupStep.Confirm
 
     BackHandler { viewModel.onAction(PinSetupIntent.Back) }
 
+    PinSetupContent(state = state, onAction = viewModel::onAction, modifier = modifier)
+}
+
+/** Stateless PIN setup (also used by previews). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PinSetupContent(
+    state: PinSetupState,
+    onAction: (PinSetupIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val confirming = state.step == PinSetupStep.Confirm
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -54,7 +65,7 @@ fun PinSetupScreen(
                     Text(if (state.changing) "Change PIN" else "Set PIN", fontWeight = FontWeight.Bold)
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(PinSetupIntent.Back) }) {
+                    IconButton(onClick = { onAction(PinSetupIntent.Back) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -102,7 +113,7 @@ fun PinSetupScreen(
             key(state.step) {
                 PinInputField(
                     value = state.pin,
-                    onValueChange = { viewModel.onAction(PinSetupIntent.UpdatePin(it)) },
+                    onValueChange = { onAction(PinSetupIntent.UpdatePin(it)) },
                     enabled = !state.saving,
                     isError = state.error != null,
                 )

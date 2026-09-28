@@ -2,3 +2,6 @@
 /build/*
 /release
 /release/*
+
+# Compose Preview Screenshot Testing output; regenerate with ./gradlew :app:updateDebugScreenshotTest
+/src/screenshotTestDebug/

@@ -90,6 +90,38 @@ fun AliasDetailScreen(
         )
     }
 
+    // Per-alias activity: its own ViewModel, filtered by the alias address (only for aliases
+    // with a concrete address; the catch-all has none)
+    val address = loaded?.display?.address
+    val activityViewModel: ActivityViewModel? = address?.let {
+        koinViewModel(key = "email-activity-$it") { parametersOf(destination.zoneId, it) }
+    }
+    val activityState = activityViewModel?.state?.collectAsStateWithLifecycle()?.value
+    if (activityViewModel != null && activityState != null) {
+        ActivityDetailSheetHost(activityState, activityViewModel::onAction)
+    }
+
+    AliasDetailScreenContent(
+        state = state,
+        onAction = onAction,
+        activityState = activityState,
+        onActivityAction = { intent -> activityViewModel?.onAction(intent) },
+        modifier = modifier,
+        snackbarHostState = snackbarHostState,
+    )
+}
+
+/** Stateless alias details screen (also used by previews). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AliasDetailScreenContent(
+    state: AliasDetailState,
+    onAction: (AliasDetailIntent) -> Unit,
+    activityState: ActivityState?,
+    onActivityAction: (ActivityIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -117,20 +149,8 @@ fun AliasDetailScreen(
             when (val data = state.dataState) {
                 AliasDetailDataState.Loading -> EmailLoading()
                 is AliasDetailDataState.Error -> EmailError(data.message, onRetry = { onAction(AliasDetailIntent.Retry) })
-                is AliasDetailDataState.Loaded -> {
-                    val address = data.display.address
-                    if (address != null) {
-                        // Per-alias activity: its own ViewModel, filtered by the alias address
-                        val activityViewModel: ActivityViewModel = koinViewModel(key = "email-activity-$address") {
-                            parametersOf(destination.zoneId, address)
-                        }
-                        val activityState by activityViewModel.state.collectAsStateWithLifecycle()
-                        ActivityDetailSheetHost(activityState, activityViewModel::onAction)
-                        AliasDetailContent(state, data.display, onAction, activityState, activityViewModel::onAction)
-                    } else {
-                        AliasDetailContent(state, data.display, onAction, null) {}
-                    }
-                }
+                is AliasDetailDataState.Loaded ->
+                    AliasDetailContent(state, data.display, onAction, activityState, onActivityAction)
             }
         }
     }

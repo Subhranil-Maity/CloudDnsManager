@@ -51,12 +51,22 @@ fun ActivitySection(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     ActivityDetailSheetHost(state, viewModel::onAction)
+    ActivityContent(state = state, onAction = viewModel::onAction, modifier = modifier)
+}
+
+/** Stateless zone-wide Activity tab (also used by previews). */
+@Composable
+fun ActivityContent(
+    state: ActivityState,
+    onAction: (ActivityIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            activityItems(state, viewModel::onAction)
+            activityItems(state, onAction)
         }
     }
 }

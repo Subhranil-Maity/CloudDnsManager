@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serilization)
+    alias(libs.plugins.screenshot)
 }
 
 android {
@@ -37,6 +38,9 @@ android {
     buildFeatures {
         compose = true
     }
+    // Compose Preview Screenshot Testing: renders @PreviewTest previews in src/screenshotTest
+    // to PNGs (./gradlew updateDebugScreenshotTest). Used for the README screenshots.
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 }
 
 dependencies {
@@ -56,6 +60,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    screenshotTestImplementation(libs.screenshot.validation.api)
+    screenshotTestImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)

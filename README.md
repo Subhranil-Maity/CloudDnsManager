@@ -40,10 +40,77 @@ It started as a view-only browser. As of **v1.0** you can create, edit and delet
 
 ## Screenshots
 
-| | |
-|---|---|
-| ![Select Zone](asserts/select_zone.jpg) | ![DNS Records](asserts/dns_records.jpg) |
-| ![Record Details](asserts/record_details.jpg) | |
+All screenshots use made-up sample data (`example.com`, `alex@example.net`, …) and the app's dark theme.
+
+### Getting around
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/01_zones.png" alt="Zone list" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/02_zone_page.png" alt="Zone page" width="250"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Zones:</b> every zone your token can access, with its plan and status. Search at the top. The lock icon opens Security settings, and the icon next to it logs out.</td>
+    <td valign="top"><b>Zone page:</b> pick <b>DNS</b> to manage records or <b>Email</b> for Email Routing.</td>
+  </tr>
+</table>
+
+### DNS
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/03_dns_records.png" alt="DNS records" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/04_dns_record_details.png" alt="Record details" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/05_dns_record_editor.png" alt="Record editor" width="250"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Records:</b> type, name, value and proxy status at a glance. The purple lock is your own lock and the orange lock is a record Cloudflare manages (here the Email Routing MX and SPF records). A pencil means the record has a private note.</td>
+    <td valign="top"><b>Record details:</b> copy the name or value, read the Cloudflare comment, keep a private note, and lock, unlock, edit or delete. A locked record can't be edited or deleted until you unlock it with your PIN or biometrics.</td>
+    <td valign="top"><b>Editor:</b> create or edit A, AAAA, CNAME, TXT, MX, NS, CAA and SRV records, with the right fields for each type: proxy switch, TTL, priority and comment.</td>
+  </tr>
+</table>
+
+### Email Routing
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/06_email_aliases.png" alt="Email aliases" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/07_alias_details.png" alt="Alias details" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/08_create_alias.png" alt="Create alias" width="250"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Aliases:</b> every alias and where it forwards, with a copy button and an on/off switch. Locked aliases can't be switched off by accident. The catch-all rule is shown at the top.</td>
+    <td valign="top"><b>Alias details:</b> copy the address, enable or disable it, change where it forwards, lock it, keep a private note, and see recent mail sent to it.</td>
+    <td valign="top"><b>New alias:</b> type a name or tap <b>Generate random</b> for a readable, hard-to-guess alias like <code>quiet-river-4821</code>. It can forward to any of your verified addresses.</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="asserts/screenshots/dark/09_email_addresses.png" alt="Destination addresses" width="250"></td>
+    <td align="center"><img src="asserts/screenshots/dark/10_email_activity.png" alt="Email activity" width="250"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Addresses:</b> the inboxes your aliases can forward to, with <b>Verified</b> or <b>Pending verification</b> status. Adding one makes Cloudflare send it a verification link.</td>
+    <td valign="top"><b>Activity:</b> recent incoming mail showing who sent it, which alias received it, the subject, and whether it was delivered, rejected or dropped.</td>
+    <td></td>
+  </tr>
+</table>
+
+### Security
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/13_security_settings.png" alt="Security settings" width="250"></td>
+    <td align="center" width="33%"><img src="asserts/screenshots/dark/12_pin_setup.png" alt="PIN setup" width="250"></td>
+    <td width="33%"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Security settings:</b> set, change or remove the app PIN, and turn on fingerprint or face unlock.</td>
+    <td valign="top"><b>PIN setup:</b> choose a 6-digit PIN, then confirm it. The app then locks on launch and after a minute in the background, and every change needs your PIN or biometrics.</td>
+    <td></td>
+  </tr>
+</table>
+
+<sub>Screenshots are rendered from Compose previews (<code>app/src/screenshotTest</code>) with <code>./gradlew :app:updateDebugScreenshotTest</code>. The Dark variants are copied here.</sub>
 
 ---
 
@@ -128,7 +195,7 @@ I chose a modern Android stack that keeps the codebase lean and maintainable:
 
 ## Architecture
 
-I followed a **pure state machine** approach for the frontend. Every screen is driven by:
+A **pure state machine** approach was followed for the frontend. Every screen is driven by:
 
 1. **State**: an immutable state with sealed substates for every screen condition (Loading, Error, Data)
 2. **Intent**: a sealed interface representing every possible user action

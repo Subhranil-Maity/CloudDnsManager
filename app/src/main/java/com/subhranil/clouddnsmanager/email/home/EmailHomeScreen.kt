@@ -56,6 +56,28 @@ fun EmailHomeScreen(
 
     BackHandler { viewModel.onAction(EmailHomeIntent.Back) }
 
+    EmailHomeContent(state = state, onAction = viewModel::onAction, modifier = modifier) { tab ->
+        // Each tab owns a ViewModel scoped to this screen, so switching tabs keeps its data
+        when (tab) {
+            EmailTab.Aliases -> AliasListSection(zone)
+            EmailTab.Addresses -> AddressesSection(zone)
+            EmailTab.Activity -> ActivitySection(zone.zoneId)
+        }
+    }
+}
+
+/**
+ * Stateless email hub (also used by previews). [tabContent] renders the selected tab, so the
+ * real screen can plug in ViewModel-backed sections and previews can plug in sample content.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EmailHomeContent(
+    state: EmailHomeState,
+    onAction: (EmailHomeIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    tabContent: @Composable (EmailTab) -> Unit,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -71,7 +93,7 @@ fun EmailHomeScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(EmailHomeIntent.Back) }) {
+                    IconButton(onClick = { onAction(EmailHomeIntent.Back) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -79,24 +101,19 @@ fun EmailHomeScreen(
         },
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            RoutingStatusBanner(state.dataState, onRetry = { viewModel.onAction(EmailHomeIntent.Retry) })
+            RoutingStatusBanner(state.dataState, onRetry = { onAction(EmailHomeIntent.Retry) })
 
             PrimaryTabRow(selectedTabIndex = state.selectedTab.ordinal) {
                 EmailTab.entries.forEach { tab ->
                     Tab(
                         selected = state.selectedTab == tab,
-                        onClick = { viewModel.onAction(EmailHomeIntent.SelectTab(tab)) },
+                        onClick = { onAction(EmailHomeIntent.SelectTab(tab)) },
                         text = { Text(tab.title) },
                     )
                 }
             }
 
-            // Each tab owns a ViewModel scoped to this screen, so switching tabs keeps its data
-            when (state.selectedTab) {
-                EmailTab.Aliases -> AliasListSection(zone)
-                EmailTab.Addresses -> AddressesSection(zone)
-                EmailTab.Activity -> ActivitySection(zone.zoneId)
-            }
+            tabContent(state.selectedTab)
         }
     }
 }

@@ -63,6 +63,17 @@ fun CreateAliasScreen(
 
     BackHandler { onAction(CreateAliasIntent.Back) }
 
+    CreateAliasContent(state = state, onAction = onAction, modifier = modifier)
+}
+
+/** Stateless create-alias form (also used by previews). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateAliasContent(
+    state: CreateAliasState,
+    onAction: (CreateAliasIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {

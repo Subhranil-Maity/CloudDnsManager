@@ -80,6 +80,41 @@ fun SecuritySettingsScreen(
         )
     }
 
+    SecuritySettingsContent(
+        state = state,
+        onAction = viewModel::onAction,
+        onEnableBiometrics = {
+            // Prove the biometric works before relying on it
+            scope.launch {
+                val result = biometrics.prompt(
+                    activity = activity,
+                    title = "Enable biometric unlock",
+                    subtitle = "Confirm with your fingerprint or face",
+                    allowDeviceCredential = false,
+                )
+                if (result == BiometricResult.Success) {
+                    viewModel.onAction(SecuritySettingsIntent.EnableBiometricsVerified)
+                }
+            }
+        },
+        modifier = modifier,
+        snackbarHostState = snackbarHostState,
+    )
+}
+
+/**
+ * Stateless security settings (also used by previews). Enabling biometrics needs the hosting
+ * Activity for the prompt, so that stays in [SecuritySettingsScreen] as [onEnableBiometrics].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SecuritySettingsContent(
+    state: SecuritySettingsState,
+    onAction: (SecuritySettingsIntent) -> Unit,
+    onEnableBiometrics: () -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -87,7 +122,7 @@ fun SecuritySettingsScreen(
             TopAppBar(
                 title = { Text("Security", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.onAction(SecuritySettingsIntent.Back) }) {
+                    IconButton(onClick = { onAction(SecuritySettingsIntent.Back) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -114,16 +149,16 @@ fun SecuritySettingsScreen(
 
             if (state.isPinSet) {
                 Row {
-                    OutlinedButton(onClick = { viewModel.onAction(SecuritySettingsIntent.ChangePin) }) {
+                    OutlinedButton(onClick = { onAction(SecuritySettingsIntent.ChangePin) }) {
                         Text("Change PIN")
                     }
                     Spacer(Modifier.width(12.dp))
-                    TextButton(onClick = { viewModel.onAction(SecuritySettingsIntent.RemovePin) }) {
+                    TextButton(onClick = { onAction(SecuritySettingsIntent.RemovePin) }) {
                         Text("Remove PIN", color = MaterialTheme.colorScheme.error)
                     }
                 }
             } else {
-                Button(onClick = { viewModel.onAction(SecuritySettingsIntent.SetPin) }) { Text("Set PIN") }
+                Button(onClick = { onAction(SecuritySettingsIntent.SetPin) }) { Text("Set PIN") }
             }
 
             if (state.isPinSet && state.biometricsAvailable) {
@@ -147,20 +182,9 @@ fun SecuritySettingsScreen(
                         checked = state.biometricsEnabled,
                         onCheckedChange = { enable ->
                             if (enable) {
-                                // Prove the biometric works before relying on it
-                                scope.launch {
-                                    val result = biometrics.prompt(
-                                        activity = activity,
-                                        title = "Enable biometric unlock",
-                                        subtitle = "Confirm with your fingerprint or face",
-                                        allowDeviceCredential = false,
-                                    )
-                                    if (result == BiometricResult.Success) {
-                                        viewModel.onAction(SecuritySettingsIntent.EnableBiometricsVerified)
-                                    }
-                                }
+                                onEnableBiometrics()
                             } else {
-                                viewModel.onAction(SecuritySettingsIntent.DisableBiometrics)
+                                onAction(SecuritySettingsIntent.DisableBiometrics)
                             }
                         },
                     )
