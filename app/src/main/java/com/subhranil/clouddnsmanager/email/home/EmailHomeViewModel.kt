@@ -7,12 +7,14 @@ import com.subhranil.clouddnsmanager.email.nav.EmailDestination
 import com.subhranil.clouddnsmanager.http.SessionManager
 import com.subhranil.clouddnsmanager.nav.NavigationRouter
 import com.subhranil.clouddnsmanager.toUserMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Email hub: Email Routing status for the zone plus the selected tab. Each tab has its own ViewModel. */
 class EmailHomeViewModel(
     private val destination: EmailDestination.Home,
     private val router: NavigationRouter,
@@ -32,6 +34,7 @@ class EmailHomeViewModel(
         when (intent) {
             EmailHomeIntent.Retry -> load()
             EmailHomeIntent.Back -> router.pop()
+            is EmailHomeIntent.SelectTab -> _state.update { it.copy(selectedTab = intent.tab) }
         }
     }
 
@@ -48,6 +51,7 @@ class EmailHomeViewModel(
                 val settings = client.emailRoutingApi().getSettings(destination.zoneId)
                 _state.update { it.copy(dataState = EmailHomeDataState.Loaded(settings)) }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 _state.update {
                     it.copy(dataState = EmailHomeDataState.Error(e.toUserMessage(permissionHint = "Email Routing Rules: Read")))
                 }

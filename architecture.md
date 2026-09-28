@@ -220,32 +220,40 @@ Key characteristics:
 
 ## 7. State Management
 
-Each screen follows the **State-Intent-ViewModel** triad with **sealed state types**:
+Each screen follows the **State-Intent-ViewModel** triad, with each part in its **own file** (`XxxState.kt`, `XxxIntent.kt`, `XxxViewModel.kt`):
 
 | Component | Role | Example |
 |-----------|------|---------|
-| **State** | Sealed interface of possible UI states | `OnBoardingState { Idle, Verifying, Error, Verified }` |
-| **Intent** | Sealed class of possible actions | `DnsRecordIntent { ShowDetailed, DismissDetailedDrawer, Retry, GoBack }` |
-| **ViewModel** | Processes intents, transitions state | `DnsRecordViewModel` exposes `val state: StateFlow<DnsRecordState>` |
+| **State** | Immutable data class, plus sealed types for content state | `DnsRecordState`, `DnsRecordDataState` |
+| **Intent** | Sealed interface of every user action | `DnsRecordIntent { ShowDetailed, Refresh, AddRecord, EditRecord, ToggleLock, RequestDelete, ConfirmDelete, SaveNote, ... }` |
+| **ViewModel** | Processes intents, performs side effects, updates state | `DnsRecordViewModel` exposes `val state: StateFlow<DnsRecordState>` |
 
 ### Sealed Data States
 
-Data-driven screens use a nested sealed type for content state:
+Data-driven screens use a nested sealed type for content, and a flat data class for everything around it (dialogs, in-progress flags, one-off messages):
 
 ```kotlin
 sealed interface DnsRecordDataState {
     data object Loading : DnsRecordDataState
     data class Error(val error: String) : DnsRecordDataState
-    data class DnsRecordData(val dnsList: List<DnsRecord>) : DnsRecordDataState
+    data class DnsRecordData(val dnsList: List<DnsRecordItem>) : DnsRecordDataState
 }
+
+/** A record plus what this device knows about it. */
+data class DnsRecordItem(val record: DnsRecord, val lockStatus: LockStatus, val note: String?)
 
 data class DnsRecordState(
     val dnsRecordDataState: DnsRecordDataState = DnsRecordDataState.Loading,
-    val openDetailedDrawer: DnsRecord? = null,
+    val openDetailedDrawer: String? = null,     // id of the record whose sheet is open
+    val refreshing: Boolean = false,
+    val working: Boolean = false,               // lock / unlock / delete in progress
+    val showDeleteConfirmation: Boolean = false,
+    val noteDraft: String = "",
+    val message: String? = null,                // one-off snackbar text
 )
 ```
 
-This pattern enables exhaustive `when` branches in Compose:
+The UI branches exhaustively on the sealed type:
 ```kotlin
 when (val dataState = state.dnsRecordDataState) {
     is DnsRecordDataState.Loading       -> /* shimmer */
@@ -254,7 +262,7 @@ when (val dataState = state.dnsRecordDataState) {
 }
 ```
 
-Every screen uses the same pattern — no `if/else` chains, no nullable state fields.
+The Email feature follows the same pattern per tab and screen (e.g. `AliasListState` / `AliasListIntent` / `AliasListViewModel`).
 
 ---
 
